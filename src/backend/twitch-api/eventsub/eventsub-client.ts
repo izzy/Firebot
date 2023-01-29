@@ -92,7 +92,8 @@ export async function createClient() {
 
         // Cheers
         const bitsSubscription = await eventSubListener.subscribeToChannelCheerEvents(streamer.userId, async (event) => {
-            const totalBits = await twitchApi.bits.getUserTotalBitsCheered(event.userId);
+            const totalBits = (await twitchApi.bits.getChannelBitsLeaderboard(1, "all", new Date(), event.userId))[0]?.amount ?? 0;
+
             twitchEventsHandler.cheer.triggerCheer(
                 event.userName,
                 event.isAnonymous,
