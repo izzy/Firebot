@@ -408,7 +408,7 @@ export async function createClient() {
     }
 
     logger.info("Connected to the Twitch EventSub!");
-}
+};
 
 export async function removeSubscriptions() {
     for (const subscription of subscriptions) {
@@ -419,7 +419,7 @@ export async function removeSubscriptions() {
         }
     }
     subscriptions = [];
-}
+};
 
 export async function disconnectEventSub() {
     await removeSubscriptions();
@@ -431,4 +431,4 @@ export async function disconnectEventSub() {
     } catch (error) {
         logger.debug("Error disconnecting EventSub", error);
     }
-}
+};

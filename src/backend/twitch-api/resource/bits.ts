@@ -24,7 +24,7 @@ export async function getChannelBitsLeaderboard(
     }
 
     return leaderboard;
-}
+};
 
 export async function getChannelBitsTopCheerers(
     count: number = 1,
@@ -36,4 +36,4 @@ export async function getChannelBitsTopCheerers(
     return leaderboard.map(l => {
         return l.userName
     })
-}
+};
