@@ -10,7 +10,7 @@ triggers[EffectTrigger.MANUAL] = true;
 const model = {
     definition: {
         handle: "moderator",
-        description: "The name of the moderator that performed the action (ban, timeout or chat mode change).",
+        description: "The name of the moderator that performed the action (ban, unban, timeout, or chat mode change).",
         triggers: triggers,
         categories: [VariableCategory.USER, VariableCategory.TRIGGER],
         possibleDataOutput: [OutputDataType.text]
