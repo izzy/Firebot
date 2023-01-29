@@ -158,6 +158,28 @@ const getUnmanageableCustomChannelRewards = async () => {
     return onlyUnmanageable;
 };
 
+const getCustomChannelReward = async (rewardId) => {
+    let reward = {};
+
+    const client = twitchApi.getClient();
+    try {
+        const response = await client.channelPoints.getCustomRewardById(
+            accountAccess.getAccounts().streamer.userId,
+            rewardId
+        );
+        if (response) {
+            reward = response;
+        } else {
+            return null;
+        }
+    } catch (err) {
+        logger.error("Failed to get Twitch custom channel reward", err.message);
+        return null;
+    }
+
+    return mapCustomRewardResponse(reward);
+};
+
 /**
  * @returns {number}
  */
@@ -227,6 +249,7 @@ const deleteCustomChannelReward = async (rewardId) => {
 exports.createCustomChannelReward = createCustomChannelReward;
 exports.getCustomChannelRewards = getCustomChannelRewards;
 exports.getUnmanageableCustomChannelRewards = getUnmanageableCustomChannelRewards;
+exports.getCustomChannelReward = getCustomChannelReward;
 exports.updateCustomChannelReward = updateCustomChannelReward;
 exports.deleteCustomChannelReward = deleteCustomChannelReward;
 exports.getTotalChannelRewardCount = getTotalChannelRewardCount;

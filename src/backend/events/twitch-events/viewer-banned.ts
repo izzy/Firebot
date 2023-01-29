@@ -1,13 +1,23 @@
 import eventManager from "../EventManager";
 
 export function triggerBanned(
-    username: string,
+    userName: string,
     moderator: string,
     modReason: string
 ): void {
     eventManager.triggerEvent("twitch", "banned", {
-        username,
+        username: userName,
         moderator,
         modReason
+    });
+};
+
+export function triggerUnbanned(
+    userName: string,
+    moderator: string
+) {
+    eventManager.triggerEvent("twitch", "unbanned", {
+        username: userName,
+        moderator: moderator
     });
 };
