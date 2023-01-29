@@ -95,11 +95,11 @@ export async function createClient() {
             const totalBits = (await twitchApi.bits.getChannelBitsLeaderboard(1, "all", new Date(), event.userId))[0]?.amount ?? 0;
 
             twitchEventsHandler.cheer.triggerCheer(
-                event.userName,
+                event.userDisplayName ?? "An Anonymous Cheerer",
                 event.isAnonymous,
                 event.bits,
                 totalBits,
-                event.message
+                event.message ?? ""
             );
         });
         subscriptions.push(bitsSubscription);
@@ -318,14 +318,14 @@ export async function createClient() {
             if (event.endDate) {
                 const timeoutDuration = (event.endDate.getTime() - event.startDate.getTime()) / 1000;
                 twitchEventsHandler.viewerTimeout.triggerTimeout(
-                    event.userName,
+                    event.userDisplayName,
                     timeoutDuration,
                     event.moderatorName,
                     event.reason
                 );
             } else {
                 twitchEventsHandler.viewerBanned.triggerBanned(
-                    event.userName,
+                    event.userDisplayName,
                     event.moderatorName,
                     event.reason
                 );
