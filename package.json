@@ -53,6 +53,7 @@
     "@twurple/api": "^5.3.3",
     "@twurple/auth": "^5.3.3",
     "@twurple/chat": "^5.3.3",
+    "@twurple/eventsub-ws": "^5.3.3",
     "@twurple/pubsub": "^5.3.3",
     "@zunderscore/elgato-light-control": "^1.1.2",
     "angular": "^1.8.0",
