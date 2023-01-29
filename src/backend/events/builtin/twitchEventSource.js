@@ -362,7 +362,7 @@ module.exports = {
                 username: "Firebot",
                 rewardName: "Test Reward",
                 rewardImage: "https://static-cdn.jtvnw.net/automatic-reward-images/highlight-1.png",
-                rewardCost: "200",
+                rewardCost: 200,
                 messageText: "Test message"
             },
             activityFeed: {
@@ -421,6 +421,360 @@ module.exports = {
                 icon: "fad fa-comment-alt",
                 getMessage: (eventData) => {
                     return `**${eventData.moderator}** has set the chat mode to **${eventData.chatMode}**.`;
+                }
+            }
+        },
+        {
+            id: "channel-poll-begin",
+            name: "Channel Poll Begin",
+            description: "When a channel poll begins on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                title: "Poll name"
+            },
+            activityFeed: {
+                icon: "fad fa-chart-bar",
+                getMessage: (eventData) => {
+                    return `Channel poll **${eventData.title}** has begun.`;
+                }
+            }
+        },
+        {
+            id: "channel-poll-progress",
+            name: "Channel Poll Progress",
+            description: "When a channel poll progresses on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                title: "Poll name"
+            },
+            activityFeed: {
+                icon: "fad fa-chart-bar",
+                getMessage: (eventData) => {
+                    return `Channel poll **${eventData.title}** has progressed.`;
+                }
+            }
+        },
+        {
+            id: "channel-poll-end",
+            name: "Channel Poll End",
+            description: "When a channel poll ends on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                title: "Poll name"
+            },
+            activityFeed: {
+                icon: "fad fa-chart-bar",
+                getMessage: (eventData) => {
+                    return `Channel poll **${eventData.title}** has ended.`;
+                }
+            }
+        },
+        {
+            id: "channel-goal-begin",
+            name: "Channel Goal Begin",
+            description: "When a channel goal begins on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                description: "Goal name"
+            },
+            activityFeed: {
+                icon: "fad fa-bullseye-arrow",
+                getMessage: (eventData) => {
+                    let message;
+                    if (eventData.description) {
+                        message = `Channel goal **${eventData.description}** has begun.`;
+                    } else {
+                        message = `Channel goal has begun.`;
+                    }
+                    return message;
+                }
+            }
+        },
+        {
+            id: "channel-goal-progress",
+            name: "Channel Goal Progress",
+            description: "When a channel goal progresses on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                description: "Goal name"
+            },
+            activityFeed: {
+                icon: "fad fa-bullseye-arrow",
+                getMessage: (eventData) => {
+                    let message;
+                    if (eventData.description) {
+                        message = `Channel goal **${eventData.description}** has progressed (**${eventData.currentAmount}**/**${eventData.targetAmount}**).`;
+                    } else {
+                        message = `Channel goal has progressed (**${eventData.currentAmount}**/**${eventData.targetAmount}**).`;
+                    }
+                    return message;
+                }
+            }
+        },
+        {
+            id: "channel-goal-end",
+            name: "Channel Goal End",
+            description: "When a channel goal ends on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                description: "Goal name"
+            },
+            activityFeed: {
+                icon: "fad fa-bullseye-arrow",
+                getMessage: (eventData) => {
+                    let message;
+                    if (eventData.description) {
+                        message = `Channel goal **${eventData.description}** has ended. Goal achieved: **${eventData.isAchieved}** (**${eventData.currentAmount}**/**${eventData.targetAmount}**).`;
+                    } else {
+                        message = `Channel goal has ended. Goal achieved: **${eventData.isAchieved ? "Yes" : "No"}** (**${eventData.currentAmount}**/**${eventData.targetAmount}**).`;
+                    }
+                    return message;
+                }
+            }
+        },
+        {
+            id: "channel-prediction-begin",
+            name: "Channel Prediction Begin",
+            description: "When a channel prediction begins on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                title: "Title"
+            },
+            activityFeed: {
+                icon: "fad fa-question-circle",
+                getMessage: (eventData) => {
+                    return `Channel prediction **${eventData.title}** has begun.`;
+                }
+            }
+        },
+        {
+            id: "channel-prediction-progress",
+            name: "Channel Prediction Progress",
+            description: "When a channel prediction progresses on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                title: "Title"
+            },
+            activityFeed: {
+                icon: "fad fa-question-circle",
+                getMessage: (eventData) => {
+                    return `Channel prediction **${eventData.title}** has progressed.`;
+                }
+            }
+        },
+        {
+            id: "channel-prediction-lock",
+            name: "Channel Prediction Locked",
+            description: "When a channel prediction is locked on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                title: "Title"
+            },
+            activityFeed: {
+                icon: "fad fa-question-circle",
+                getMessage: (eventData) => {
+                    return `Channel prediction **${eventData.title}** has been locked.`;
+                }
+            }
+        },
+        {
+            id: "channel-prediction-end",
+            name: "Channel Prediction End",
+            description: "When a channel prediction ends on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                title: "Title"
+            },
+            activityFeed: {
+                icon: "fad fa-question-circle",
+                getMessage: (eventData) => {
+                    return `Channel prediction **${eventData.title}** has ended. Winning outcome: **${eventData.winningOutcome.title}**.`;
+                }
+            }
+        },
+        {
+            id: "hype-train-start",
+            name: "Hype Train Start",
+            description: "When a hype train starts on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                total: "150",
+                progress: "150",
+                goal: "500",
+                level: "1"
+            },
+            activityFeed: {
+                icon: "fad fa-train",
+                getMessage: () => {
+                    return `Hype train started!`;
+                }
+            }
+        },
+        {
+            id: "hype-train-progress",
+            name: "Hype Train Progress",
+            description: "When a hype train progresses on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                total: "150",
+                progress: "150",
+                goal: "500",
+                level: "1"
+            },
+            activityFeed: {
+                icon: "fad fa-train",
+                getMessage: (eventData) => {
+                    return `Level **${eventData.level}** hype train currently at **${Math.floor((eventData.progress / eventData.goal) * 100)}%**.`;
+                }
+            }
+        },
+        {
+            id: "hype-train-end",
+            name: "Hype Train End",
+            description: "When a hype train ends on your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                total: "150",
+                progress: "150",
+                goal: "500",
+                level: "1"
+            },
+            activityFeed: {
+                icon: "fad fa-train",
+                getMessage: (eventData) => {
+                    return `Level **${eventData.level}** hype train ended.`;
+                }
+            }
+        },
+        {
+            id: "stream-online",
+            name: "Stream Started",
+            description: "When your stream starts.",
+            cached: false,
+            queued: false,
+            manualMetadata: { },
+            activityFeed: {
+                icon: "fad fa-play-circle",
+                getMessage: () => {
+                    return `Stream started.`;
+                }
+            }
+        },
+        {
+            id: "stream-offline",
+            name: "Stream Ended",
+            description: "When your stream ends.",
+            cached: false,
+            queued: false,
+            manualMetadata: { },
+            activityFeed: {
+                icon: "fad fa-stop-circle",
+                getMessage: () => {
+                    return `Stream ended.`;
+                }
+            }
+        },
+        {
+            id: "charity-campaign-start",
+            name: "Charity Campaign Started",
+            description: "When you start a charity campaign in your channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                charityName: "Great Cause, LLC",
+                charityDescription: "They do really great stuff",
+                charityWebsite: "https://somewebsite.org",
+                charityLogo: "https://somewebsite.org/logo.png",
+                currentTotalAmount: "10",
+                currentTotalCurrency: "USD",
+                targetTotalAmount: "1000",
+                targetTotalCurrency: "USD"
+            },
+            activityFeed: {
+                icon: "fad fa-ribbon",
+                getMessage: (eventData) => {
+                    return `Charity campaign benefitting **${eventData.charityName}** has started.`;
+                }
+            }
+        },
+        {
+            id: "charity-donation",
+            name: "Charity Donation",
+            description: "When someone donates to your channel's charity campaign.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                from: "Firebot",
+                charityName: "Great Cause, LLC",
+                charityDescription: "They do really great stuff",
+                charityWebsite: "https://somewebsite.org",
+                charityLogo: "https://somewebsite.org/logo.png",
+                donationAmount: "10",
+                donationCurrency: "USD"
+            },
+            activityFeed: {
+                icon: "fad fa-hand-holding-heart",
+                getMessage: (eventData) => {
+                    return `**${eventData.from}** made a charity donation of **${eventData.donationAmount} ${eventData.donationCurrency}**.`;
+                }
+            }
+        },
+        {
+            id: "charity-campaign-progress",
+            name: "Charity Campaign Progress",
+            description: "When your channel's charity campaign progresses.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                charityName: "Great Cause, LLC",
+                charityDescription: "They do really great stuff",
+                charityWebsite: "https://somewebsite.org",
+                charityLogo: "https://somewebsite.org/logo.png",
+                currentTotalAmount: "10",
+                currentTotalCurrency: "USD",
+                targetTotalAmount: "1000",
+                targetTotalCurrency: "USD"
+            },
+            activityFeed: {
+                icon: "fad fa-ribbon",
+                getMessage: (eventData) => {
+                    return `Charity campaign has progressed. Total so far: **${eventData.currentTotalAmount} ${eventData.currentTotalCurrency}**.`;
+                }
+            }
+        },
+        {
+            id: "charity-campaign-end",
+            name: "Charity Campaign Ended",
+            description: "When your channel's charity campaign ends.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                charityName: "Great Cause, LLC",
+                charityDescription: "They do really great stuff",
+                charityWebsite: "https://somewebsite.org",
+                charityLogo: "https://somewebsite.org/logo.png",
+                currentTotalAmount: "10",
+                currentTotalCurrency: "USD",
+                targetTotalAmount: "1000",
+                targetTotalCurrency: "USD"
+            },
+            activityFeed: {
+                icon: "fad fa-ribbon",
+                getMessage: (eventData) => {
+                    return `Charity campaign has ended. Goal reached: **${eventData.goalReached ? "Yes" : "No"}**. Total raised: **${eventData.currentTotalAmount} ${eventData.currentTotalCurrency}**.`;
                 }
             }
         }
