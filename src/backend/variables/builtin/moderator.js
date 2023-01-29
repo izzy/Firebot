@@ -4,7 +4,7 @@ const { EffectTrigger } = require("../../../shared/effect-constants");
 const { OutputDataType, VariableCategory } = require("../../../shared/variable-constants");
 
 const triggers = {};
-triggers[EffectTrigger.EVENT] = ["twitch:banned", "twitch:timeout", "twitch:chat-mode-changed"];
+triggers[EffectTrigger.EVENT] = ["twitch:banned", "twitch:unbanned", "twitch:timeout", "twitch:chat-mode-changed"];
 triggers[EffectTrigger.MANUAL] = true;
 
 const model = {
