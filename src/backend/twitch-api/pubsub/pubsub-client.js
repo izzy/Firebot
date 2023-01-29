@@ -83,40 +83,6 @@ async function createClient() {
     try {
         const twitchEventsHandler = require('../../events/twitch-events');
 
-        const redemptionListener = await pubSubClient.onRedemption(streamer.userId,
-            (message) => {
-                logger.debug("Got reward redemption event!");
-
-                let imageUrl = "";
-                if (message && message.defaultImage) {
-                    const images = message.defaultImage;
-                    if (images.url_4x) {
-                        imageUrl = images.url_4x;
-                    } else if (images.url_2x) {
-                        imageUrl = images.url_2x;
-                    } else if (images.url_1x) {
-                        imageUrl = images.url_1x;
-                    }
-                }
-
-                twitchEventsHandler.rewardRedemption.handleRewardRedemption(
-                    message.id,
-                    message.status,
-                    message.rewardIsQueued,
-                    message.message ?? "",
-                    message.userId,
-                    message.userName,
-                    message.userDisplayName,
-                    message.rewardId,
-                    message.rewardTitle,
-                    message.rewardPrompt ?? "",
-                    message.rewardCost,
-                    imageUrl
-                );
-            });
-
-        listeners.push(redemptionListener);
-
         const whisperListener = await pubSubClient.onWhisper(streamer.userId, (message) => {
             twitchEventsHandler.whisper.triggerWhisper(
                 message.senderName,
@@ -124,17 +90,6 @@ async function createClient() {
             );
         });
         listeners.push(whisperListener);
-
-        const bitsListener = await pubSubClient.onBits(streamer.userId, (message) => {
-            twitchEventsHandler.cheer.triggerCheer(
-                message.userName ?? "An Anonymous Cheerer",
-                message.isAnonymous,
-                message.bits,
-                message.totalBits,
-                message.message ?? ""
-            );
-        });
-        listeners.push(bitsListener);
 
         const bitsBadgeUnlockListener = await pubSubClient.onBitsBadgeUnlock(streamer.userId, (message) => {
             twitchEventsHandler.cheer.triggerBitsBadgeUnlock(
@@ -187,23 +142,6 @@ async function createClient() {
             switch (message.action) {
             case "clear":
                 frontendCommunicator.send("twitch:chat:clear-feed", message.userName);
-                break;
-            case "ban":
-                twitchEventsHandler.viewerBanned.triggerBanned(
-                    message.args[0],
-                    message.userName,
-                    message.args[1] ?? ""
-                );
-                frontendCommunicator.send("twitch:chat:user:delete-messages", message.args[0]);
-                break;
-            case "timeout":
-                twitchEventsHandler.viewerTimeout.triggerTimeout(
-                    message.args[0],
-                    message.args[1],
-                    message.userName,
-                    message.args[2] ?? ""
-                );
-                frontendCommunicator.send("twitch:chat:user:delete-messages", message.args[0]);
                 break;
             case "emoteonly":
             case "emoteonlyoff":

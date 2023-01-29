@@ -76,19 +76,19 @@ export async function createClient() {
         // subscriptions.push(giftSubsSubscription);
 
         // Subscriptions
-        const subsSubscription = await eventSubListener.subscribeToChannelSubscriptionMessageEvents(streamer.userId, (event) => {
-            twitchEventsHandler.sub.triggerSub(
-                event.userName,
-                event.userDisplayName,
-                event.tier,
-                event.cumulativeMonths,
-                event.messageText,
-                event.streakMonths,
-                false, // EventSub has no determination for Prime vs regular
-                (event.cumulativeMonths ?? 1) > 1
-            );
-        });
-        subscriptions.push(subsSubscription);
+        // const subsSubscription = await eventSubListener.subscribeToChannelSubscriptionMessageEvents(streamer.userId, (event) => {
+        //     twitchEventsHandler.sub.triggerSub(
+        //         event.userName,
+        //         event.userDisplayName,
+        //         event.tier,
+        //         event.cumulativeMonths,
+        //         event.messageText,
+        //         event.streakMonths,
+        //         false, // EventSub has no determination for Prime vs regular
+        //         (event.cumulativeMonths ?? 1) > 1
+        //     );
+        // });
+        // subscriptions.push(subsSubscription);
 
         // Cheers
         const bitsSubscription = await eventSubListener.subscribeToChannelCheerEvents(streamer.userId, async (event) => {
