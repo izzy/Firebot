@@ -8,4 +8,4 @@ export function triggerViewerArrived(
         username: userDisplayName,
         messageText
     });
-}
+};

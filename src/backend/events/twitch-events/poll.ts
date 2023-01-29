@@ -21,7 +21,7 @@ export function triggerChannelPollBegin(
         isChannelPointsVotingEnabled,
         channelPointsPerVote
     });
-}
+};
 
 export function triggerChannelPollProgress(
     title: string,
@@ -39,7 +39,7 @@ export function triggerChannelPollProgress(
         isChannelPointsVotingEnabled,
         channelPointsPerVote
     });
-}
+};
 
 export function triggerChannelPollEnd(
     title: string,
@@ -59,4 +59,4 @@ export function triggerChannelPollEnd(
         channelPointsPerVote,
         status
     });
-}
+};
