@@ -18,6 +18,6 @@ export function triggerUnbanned(
 ) {
     eventManager.triggerEvent("twitch", "unbanned", {
         username: userDisplayName,
-        moderator: moderator
+        moderator
     });
 };
