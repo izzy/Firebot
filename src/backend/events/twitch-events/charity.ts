@@ -83,6 +83,6 @@ export function triggerCharityCampaignEnd(
         currentTotalCurrency,
         targetTotalAmount,
         targetTotalCurrency,
-        goalReached: currentTotalAmount > targetTotalAmount
+        goalReached: currentTotalAmount >= targetTotalAmount
     });
 };
