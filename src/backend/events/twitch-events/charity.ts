@@ -11,14 +11,14 @@ export function triggerCharityCampaignStart(
     targetTotalCurrency: string
 ) {
     eventManager.triggerEvent("twitch", "charity-campaign-start", {
-        charityName: charityName,
-        charityDescription: charityDescription,
-        charityLogo: charityLogo,
-        charityWebsite: charityWebsite,
-        currentTotalAmount: currentTotalAmount,
-        currentTotalCurrency: currentTotalCurrency,
-        targetTotalAmount: targetTotalAmount,
-        targetTotalCurrency: targetTotalCurrency
+        charityName,
+        charityDescription,
+        charityLogo,
+        charityWebsite,
+        currentTotalAmount,
+        currentTotalCurrency,
+        targetTotalAmount,
+        targetTotalCurrency
     });
 };
 
@@ -33,12 +33,12 @@ export function triggerCharityDonation(
 ) {
     eventManager.triggerEvent("twitch", "charity-donation", {
         from: username,
-        charityName: charityName,
-        charityDescription: charityDescription,
-        charityLogo: charityLogo,
-        charityWebsite: charityWebsite,
-        donationAmount: donationAmount,
-        donationCurrency: donationCurrency
+        charityName,
+        charityDescription,
+        charityLogo,
+        charityWebsite,
+        donationAmount,
+        donationCurrency
     });
 };
 
@@ -53,14 +53,14 @@ export function triggerCharityCampaignProgress(
     targetTotalCurrency: string
 ) {
     eventManager.triggerEvent("twitch", "charity-campaign-progress", {
-        charityName: charityName,
-        charityDescription: charityDescription,
-        charityLogo: charityLogo,
-        charityWebsite: charityWebsite,
-        currentTotalAmount: currentTotalAmount,
-        currentTotalCurrency: currentTotalCurrency,
-        targetTotalAmount: targetTotalAmount,
-        targetTotalCurrency: targetTotalCurrency
+        charityName,
+        charityDescription,
+        charityLogo,
+        charityWebsite,
+        currentTotalAmount,
+        currentTotalCurrency,
+        targetTotalAmount,
+        targetTotalCurrency
     });
 };
 
@@ -75,14 +75,14 @@ export function triggerCharityCampaignEnd(
     targetTotalCurrency: string
 ) {
     eventManager.triggerEvent("twitch", "charity-campaign-end", {
-        charityName: charityName,
-        charityDescription: charityDescription,
-        charityLogo: charityLogo,
-        charityWebsite: charityWebsite,
-        currentTotalAmount: currentTotalAmount,
-        currentTotalCurrency: currentTotalCurrency,
-        targetTotalAmount: targetTotalAmount,
-        targetTotalCurrency: targetTotalCurrency,
+        charityName,
+        charityDescription,
+        charityLogo,
+        charityWebsite,
+        currentTotalAmount,
+        currentTotalCurrency,
+        targetTotalAmount,
+        targetTotalCurrency,
         goalReached: currentTotalAmount > targetTotalAmount
     });
 };
