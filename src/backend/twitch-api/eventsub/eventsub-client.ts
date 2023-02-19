@@ -22,10 +22,10 @@ export async function createClient() {
             apiClient: twitchApi.getClient()
         });
 
-        await eventSubListener.start();
+        eventSubListener.start();
 
         // Stream online
-        const onlineSubscription = await eventSubListener.subscribeToStreamOnlineEvents(streamer.userId, (event) => {
+        const onlineSubscription = eventSubListener.onStreamOnline(streamer.userId, (event) => {
             twitchEventsHandler.stream.triggerStreamOnline(
                 event.broadcasterId,
                 event.broadcasterName,
@@ -35,7 +35,7 @@ export async function createClient() {
         subscriptions.push(onlineSubscription);
 
         // Stream offline
-        const offlineSubscription = await eventSubListener.subscribeToStreamOfflineEvents(streamer.userId, (event) => {
+        const offlineSubscription = eventSubListener.onStreamOffline(streamer.userId, (event) => {
             twitchEventsHandler.stream.triggerStreamOffline(
                 event.broadcasterId,
                 event.broadcasterName,
@@ -45,7 +45,7 @@ export async function createClient() {
         subscriptions.push(offlineSubscription);
 
         // Follows
-        const followSubscription = await eventSubListener.subscribeToChannelFollowEvents(streamer.userId, (event) => {
+        const followSubscription = eventSubListener.onChannelFollow(streamer.userId, (event) => {
             twitchEventsHandler.follow.triggerFollow(
                 event.userId,
                 event.userName,
@@ -91,7 +91,7 @@ export async function createClient() {
         // subscriptions.push(subsSubscription);
 
         // Cheers
-        const bitsSubscription = await eventSubListener.subscribeToChannelCheerEvents(streamer.userId, async (event) => {
+        const bitsSubscription = eventSubListener.onChannelCheer(streamer.userId, async (event) => {
             const totalBits = (await twitchApi.bits.getChannelBitsLeaderboard(1, "all", new Date(), event.userId))[0]?.amount ?? 0;
 
             twitchEventsHandler.cheer.triggerCheer(
@@ -105,7 +105,7 @@ export async function createClient() {
         subscriptions.push(bitsSubscription);
 
         // Channel custom reward
-        const customRewardRedemptionSubscription = await eventSubListener.subscribeToChannelRedemptionAddEvents(streamer.userId, async (event) => {
+        const customRewardRedemptionSubscription = eventSubListener.onChannelRedemptionAdd(streamer.userId, async (event) => {
             const reward = await twitchApi.channelRewards.getCustomChannelReward(event.rewardId);
             let imageUrl = "";
 
@@ -138,7 +138,7 @@ export async function createClient() {
         subscriptions.push(customRewardRedemptionSubscription);
 
         // Raid
-        const raidSubscription = await eventSubListener.subscribeToChannelRaidEventsTo(streamer.userId, (event) => {
+        const raidSubscription = eventSubListener.onChannelRaidTo(streamer.userId, (event) => {
             twitchEventsHandler.raid.triggerRaid(
                 event.raidingBroadcasterDisplayName,
                 event.viewers
@@ -147,7 +147,7 @@ export async function createClient() {
         subscriptions.push(raidSubscription);
 
         // Hype Train start
-        const hypeTrainBeginSubscription = await eventSubListener.subscribeToChannelHypeTrainBeginEvents(streamer.userId, (event) => {
+        const hypeTrainBeginSubscription = eventSubListener.onChannelHypeTrainBegin(streamer.userId, (event) => {
             twitchEventsHandler.hypeTrain.triggerHypeTrainStart(
                 event.total,
                 event.progress,
@@ -162,7 +162,7 @@ export async function createClient() {
         subscriptions.push(hypeTrainBeginSubscription);
 
         // Hype Train progress
-        const hypeTrainProgressSubscription = await eventSubListener.subscribeToChannelHypeTrainProgressEvents(streamer.userId, (event) => {
+        const hypeTrainProgressSubscription = eventSubListener.onChannelHypeTrainProgress(streamer.userId, (event) => {
             twitchEventsHandler.hypeTrain.triggerHypeTrainProgress(
                 event.total,
                 event.progress,
@@ -177,7 +177,7 @@ export async function createClient() {
         subscriptions.push(hypeTrainProgressSubscription);
 
         // Hype Train end
-        const hypeTrainEndSubscription = await eventSubListener.subscribeToChannelHypeTrainEndEvents(streamer.userId, (event) => {
+        const hypeTrainEndSubscription = eventSubListener.onChannelHypeTrainEnd(streamer.userId, (event) => {
             twitchEventsHandler.hypeTrain.triggerHypeTrainEnd(
                 event.total,
                 event.level,
@@ -190,7 +190,7 @@ export async function createClient() {
         subscriptions.push(hypeTrainEndSubscription);
 
         // Channel goal begin
-        const channelGoalBeginSubscription = await eventSubListener.subscribeToChannelGoalBeginEvents(streamer.userId, (event) => {
+        const channelGoalBeginSubscription = eventSubListener.onChannelGoalBegin(streamer.userId, (event) => {
             twitchEventsHandler.goal.triggerChannelGoalBegin(
                 event.description,
                 event.type,
@@ -202,7 +202,7 @@ export async function createClient() {
         subscriptions.push(channelGoalBeginSubscription);
 
         // Channel goal progress
-        const channelGoalProgressSubscription = await eventSubListener.subscribeToChannelGoalProgressEvents(streamer.userId, (event) => {
+        const channelGoalProgressSubscription = eventSubListener.onChannelGoalProgress(streamer.userId, (event) => {
             twitchEventsHandler.goal.triggerChannelGoalProgress(
                 event.description,
                 event.type,
@@ -214,7 +214,7 @@ export async function createClient() {
         subscriptions.push(channelGoalProgressSubscription);
 
         // Channel goal end
-        const channelGoalEndSubscription = await eventSubListener.subscribeToChannelGoalEndEvents(streamer.userId, (event) => {
+        const channelGoalEndSubscription = eventSubListener.onChannelGoalEnd(streamer.userId, (event) => {
             twitchEventsHandler.goal.triggerChannelGoalEnd(
                 event.description,
                 event.type,
@@ -228,7 +228,7 @@ export async function createClient() {
         subscriptions.push(channelGoalEndSubscription);
 
         // Channel poll begin
-        const pollBeginSubscription = await eventSubListener.subscribeToChannelPollBeginEvents(streamer.userId, (event) => {
+        const pollBeginSubscription = eventSubListener.onChannelPollBegin(streamer.userId, (event) => {
             twitchEventsHandler.poll.triggerChannelPollBegin(
                 event.title,
                 event.choices,
@@ -241,7 +241,7 @@ export async function createClient() {
         subscriptions.push(pollBeginSubscription);
 
         // Channel poll progress
-        const pollProgressSubscription = await eventSubListener.subscribeToChannelPollProgressEvents(streamer.userId, (event) => {
+        const pollProgressSubscription = eventSubListener.onChannelPollProgress(streamer.userId, (event) => {
             twitchEventsHandler.poll.triggerChannelPollProgress(
                 event.title,
                 event.choices,
@@ -254,7 +254,7 @@ export async function createClient() {
         subscriptions.push(pollProgressSubscription);
 
         // Channel poll end
-        const pollEndSubscription = await eventSubListener.subscribeToChannelPollEndEvents(streamer.userId, (event) => {
+        const pollEndSubscription = eventSubListener.onChannelPollEnd(streamer.userId, (event) => {
             twitchEventsHandler.poll.triggerChannelPollEnd(
                 event.title,
                 event.choices,
@@ -268,7 +268,7 @@ export async function createClient() {
         subscriptions.push(pollEndSubscription);
 
         // Channel prediction begin
-        const predictionBeginSubscription = await eventSubListener.subscribeToChannelPredictionBeginEvents(streamer.userId, (event) => {
+        const predictionBeginSubscription = eventSubListener.onChannelPredictionBegin(streamer.userId, (event) => {
             twitchEventsHandler.prediction.triggerChannelPredictionBegin(
                 event.title,
                 event.outcomes,
@@ -279,7 +279,7 @@ export async function createClient() {
         subscriptions.push(predictionBeginSubscription);
 
         // Channel prediction progress
-        const predictionProgressSubscription = await eventSubListener.subscribeToChannelPredictionProgressEvents(streamer.userId, (event) => {
+        const predictionProgressSubscription = eventSubListener.onChannelPredictionProgress(streamer.userId, (event) => {
             twitchEventsHandler.prediction.triggerChannelPredictionProgress(
                 event.title,
                 event.outcomes,
@@ -290,7 +290,7 @@ export async function createClient() {
         subscriptions.push(predictionProgressSubscription);
 
         // Channel prediction lock
-        const predictionLockSubscription = await eventSubListener.subscribeToChannelPredictionLockEvents(streamer.userId, (event) => {
+        const predictionLockSubscription = eventSubListener.onChannelPredictionLock(streamer.userId, (event) => {
             twitchEventsHandler.prediction.triggerChannelPredictionLock(
                 event.title,
                 event.outcomes,
@@ -301,7 +301,7 @@ export async function createClient() {
         subscriptions.push(predictionLockSubscription);
 
         // Channel prediction end
-        const predictionEndSubscription = await eventSubListener.subscribeToChannelPredictionEndEvents(streamer.userId, (event) => {
+        const predictionEndSubscription = eventSubListener.onChannelPredictionEnd(streamer.userId, (event) => {
             twitchEventsHandler.prediction.triggerChannelPredictionEnd(
                 event.title,
                 event.outcomes,
@@ -314,7 +314,7 @@ export async function createClient() {
         subscriptions.push(predictionEndSubscription);
 
         // Ban
-        const banSubscription = await eventSubListener.subscribeToChannelBanEvents(streamer.userId, (event) => {
+        const banSubscription = eventSubListener.onChannelBan(streamer.userId, (event) => {
             if (event.endDate) {
                 const timeoutDuration = (event.endDate.getTime() - event.startDate.getTime()) / 1000;
                 twitchEventsHandler.viewerTimeout.triggerTimeout(
@@ -336,7 +336,7 @@ export async function createClient() {
         subscriptions.push(banSubscription);
 
         // Unban
-        const unbanSubscription = await eventSubListener.subscribeToChannelUnbanEvents(streamer.userId, (event) => {
+        const unbanSubscription = eventSubListener.onChannelUnban(streamer.userId, (event) => {
             twitchEventsHandler.viewerBanned.triggerUnbanned(
                 event.userName,
                 event.moderatorName
@@ -345,7 +345,7 @@ export async function createClient() {
         subscriptions.push(unbanSubscription);
 
         // Charity Campaign Start
-        const charityCampaignStartSubscription = await eventSubListener.subscribeToChannelCharityCampaignStartEvents(streamer.userId, (event) => {
+        const charityCampaignStartSubscription = eventSubListener.onChannelCharityCampaignStart(streamer.userId, (event) => {
             twitchEventsHandler.charity.triggerCharityCampaignStart(
                 event.charityName,
                 event.charityDescription,
@@ -360,7 +360,7 @@ export async function createClient() {
         subscriptions.push(charityCampaignStartSubscription);
 
         // Charity Donation
-        const charityDonationSubscription = await eventSubListener.subscribeToChannelCharityDonationEvents(streamer.userId, (event) => {
+        const charityDonationSubscription = eventSubListener.onChannelCharityDonation(streamer.userId, (event) => {
             twitchEventsHandler.charity.triggerCharityDonation(
                 event.donorDisplayName,
                 event.charityName,
@@ -374,7 +374,7 @@ export async function createClient() {
         subscriptions.push(charityDonationSubscription);
 
         // Charity Campaign Progress
-        const charityCampaignProgressSubscription = await eventSubListener.subscribeToChannelCharityCampaignProgressEvents(streamer.userId, (event) => {
+        const charityCampaignProgressSubscription = eventSubListener.onChannelCharityCampaignProgress(streamer.userId, (event) => {
             twitchEventsHandler.charity.triggerCharityCampaignProgress(
                 event.charityName,
                 event.charityDescription,
@@ -389,7 +389,7 @@ export async function createClient() {
         subscriptions.push(charityCampaignProgressSubscription);
 
         // Charity Campaign End
-        const charityCampaignEndSubscription = await eventSubListener.subscribeToChannelCharityCampaignStopEvents(streamer.userId, (event) => {
+        const charityCampaignEndSubscription = eventSubListener.onChannelCharityCampaignStop(streamer.userId, (event) => {
             twitchEventsHandler.charity.triggerCharityCampaignEnd(
                 event.charityName,
                 event.charityDescription,
@@ -413,7 +413,7 @@ export async function createClient() {
 export async function removeSubscriptions() {
     for (const subscription of subscriptions) {
         try {
-            await subscription.stop();   
+            subscription.stop();   
         } catch (error) {
             logger.debug("Failed to remove EventSub subscription", error);
         }
@@ -425,7 +425,7 @@ export async function disconnectEventSub() {
     await removeSubscriptions();
     try {
         if (eventSubListener) {
-            await eventSubListener.stop();
+            eventSubListener.stop();
             logger.info("Disconnected from EventSub.");
         } 
     } catch (error) {
