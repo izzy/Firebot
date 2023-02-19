@@ -31,7 +31,7 @@ class TwitchChat extends EventEmitter {
      * Whether or not the streamer is currently connected
      */
     chatIsConnected() {
-        return this._streamerChatClient?.irc?.isConnected === true;
+        return this._streamerChatClient?.irc.isConnected === true;
     }
 
     /**
