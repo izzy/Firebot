@@ -2,7 +2,7 @@
 const logger = require("../logwrapper");
 const EventEmitter = require("events");
 const { ChatClient } = require("@twurple/chat");
-const refreshingAuthProvider = require("../auth/refreshing-auth-provider");
+const firebotRefreshingAuthProvider = require("../auth/firebot-refreshing-auth-provider");
 const accountAccess = require("../common/account-access");
 const frontendCommunicator = require("../common/frontend-communicator");
 const chatHelpers = require("./chat-helpers");
@@ -66,7 +66,7 @@ class TwitchChat extends EventEmitter {
             return;
         }
 
-        const authProvider = refreshingAuthProvider.getRefreshingAuthProviderForStreamer();
+        const authProvider = firebotRefreshingAuthProvider.provider;
         if (authProvider == null) {
             return;
         }
@@ -77,25 +77,26 @@ class TwitchChat extends EventEmitter {
         try {
             this._streamerChatClient = new ChatClient({
                 authProvider: authProvider,
-                requestMembershipEvents: true
+                requestMembershipEvents: true,
+                authIntents: [firebotRefreshingAuthProvider.STREAMER_CHAT_INTENT]
             });
 
-            this._streamerChatClient.onRegister(() => {
+            this._streamerChatClient.irc.onRegister(() => {
                 this._streamerChatClient.join(streamer.username);
                 frontendCommunicator.send("twitch:chat:autodisconnected", false);
             });
 
-            this._streamerChatClient.onPasswordError((event) => {
+            this._streamerChatClient.irc.onPasswordError((event) => {
                 logger.error("Failed to connect to chat", event);
                 frontendCommunicator.send("error", `Unable to connect to chat. Reason: "${event.message}". Try signing out and back into your streamer/bot account(s).`);
                 this.disconnect(true);
             });
 
-            this._streamerChatClient.onConnect(() => {
+            this._streamerChatClient.irc.onConnect(() => {
                 this.emit("connected");
             });
 
-            this._streamerChatClient.onAnyMessage((message) => {
+            this._streamerChatClient.irc.onAnyMessage((message) => {
                 if (message.constructor.name === "UserState") {
                     const userData = message.tags;
 
@@ -109,7 +110,7 @@ class TwitchChat extends EventEmitter {
                 }
             });
 
-            this._streamerChatClient.onDisconnect((manual, reason) => {
+            this._streamerChatClient.irc.onDisconnect((manual, reason) => {
                 if (!manual) {
                     logger.error("Chat disconnected unexpectedly", reason);
                     frontendCommunicator.send("twitch:chat:autodisconnected", true);
@@ -124,7 +125,7 @@ class TwitchChat extends EventEmitter {
 
             chatterPoll.startChatterPoll();
 
-            const vips = await this._streamerChatClient.getVips(accountAccess.getAccounts().streamer.username);
+            const vips = await twitchApi.channels.getVips();
             if (vips) {
                 chatRolesManager.loadUsersInVipRole(vips);
             }
@@ -140,11 +141,12 @@ class TwitchChat extends EventEmitter {
             }
 
             this._botChatClient = new ChatClient({
-                authProvider: refreshingAuthProvider.getRefreshingAuthProviderForBot(),
-                requestMembershipEvents: true
+                authProvider: firebotRefreshingAuthProvider.provider,
+                requestMembershipEvents: true,
+                authIntents: [firebotRefreshingAuthProvider.BOT_CHAT_INTENT]
             });
 
-            this._botChatClient.onRegister(() => this._botChatClient.join(streamer.username));
+            this._botChatClient.irc.onRegister(() => this._botChatClient.join(streamer.username));
 
             twitchChatListeners.setupBotChatListeners(this._botChatClient);
 
@@ -222,7 +224,7 @@ class TwitchChat extends EventEmitter {
 
         const shouldWhisper = username != null && username.trim() !== "";
 
-        const botAvailable = accountAccess.getAccounts().bot.loggedIn && this._botChatClient && this._botChatClient.isConnected;
+        const botAvailable = accountAccess.getAccounts().bot.loggedIn && this._botChatClient && this._botChatClient.irc.isConnected;
         if (accountType == null) {
             accountType = botAvailable && !shouldWhisper ? "bot" : "streamer";
         } else if (accountType === "bot" && !botAvailable) {

@@ -2,7 +2,7 @@
 const logger = require("../../logwrapper");
 const accountAccess = require("../../common/account-access");
 const frontendCommunicator = require("../../common/frontend-communicator");
-const refreshingAuthProvider = require("../../auth/refreshing-auth-provider");
+const firebotRefreshingAuthProvider = require("../../auth/firebot-refreshing-auth-provider");
 const { PubSubClient } = require("@twurple/pubsub");
 
 /**@type {PubSubClient} */
@@ -17,22 +17,12 @@ let listeners = [];
  */
 async function removeListeners(pubSubClient) {
     if (pubSubClient) {
-        let userListener;
-        try {
-            userListener = pubSubClient.getUserListener(
-                accountAccess.getAccounts().streamer.userId
-            );
-        } catch (error) {
-            console.log(error);
-        }
-        if (userListener) {
-            for (const listener of listeners) {
-                try {
-                    await userListener.removeListener(listener);
-                    await listener.remove();
-                } catch (error) {
-                    console.log(error);
-                }
+        for (const listener of listeners) {
+            try {
+                pubSubClient.removeListener(listener);
+                await listener.remove();
+            } catch (error) {
+                console.log(error);
             }
         }
     } else {
@@ -50,8 +40,8 @@ async function removeListeners(pubSubClient) {
 async function disconnectPubSub() {
     await removeListeners(pubSubClient);
     try {
-        if (pubSubClient && pubSubClient._rootClient && pubSubClient._rootClient.isConnected) {
-            pubSubClient._rootClient.disconnect();
+        if (pubSubClient && pubSubClient._basicClient && pubSubClient._basicClient.isConnected) {
+            pubSubClient._basicClient.disconnect();
             logger.info("Disconnected from PubSub.");
         }
     } catch (err) {
@@ -67,23 +57,16 @@ async function createClient() {
 
     logger.info("Connecting to Twitch PubSub...");
 
-    pubSubClient = new PubSubClient();
+    const authProvider = firebotRefreshingAuthProvider.provider;
 
-    const authProvider = refreshingAuthProvider.getRefreshingAuthProviderForStreamer();
-
-    try {
-        // throws error if one doesn't exist
-        pubSubClient.getUserListener(streamer.userId);
-    } catch (err) {
-        await pubSubClient.registerUserListener(authProvider, streamer.userId);
-    }
+    pubSubClient = new PubSubClient({ authProvider });
 
     await removeListeners(pubSubClient);
 
     try {
         const twitchEventsHandler = require('../../events/twitch-events');
 
-        const whisperListener = await pubSubClient.onWhisper(streamer.userId, (message) => {
+        const whisperListener = pubSubClient.onWhisper(streamer.userId, (message) => {
             twitchEventsHandler.whisper.triggerWhisper(
                 message.senderName,
                 message.text
@@ -91,7 +74,7 @@ async function createClient() {
         });
         listeners.push(whisperListener);
 
-        const bitsBadgeUnlockListener = await pubSubClient.onBitsBadgeUnlock(streamer.userId, (message) => {
+        const bitsBadgeUnlockListener = pubSubClient.onBitsBadgeUnlock(streamer.userId, (message) => {
             twitchEventsHandler.cheer.triggerBitsBadgeUnlock(
                 message.userName ?? "An Anonymous Cheerer",
                 message.message ?? "",
@@ -100,7 +83,7 @@ async function createClient() {
         });
         listeners.push(bitsBadgeUnlockListener);
 
-        const subsListener = await pubSubClient.onSubscription(streamer.userId, (subInfo) => {
+        const subsListener = pubSubClient.onSubscription(streamer.userId, (subInfo) => {
             if (!subInfo.isGift) {
                 twitchEventsHandler.sub.triggerSub(
                     subInfo.userName,
@@ -116,7 +99,7 @@ async function createClient() {
         });
         listeners.push(subsListener);
 
-        const autoModListener = await pubSubClient.onAutoModQueue(streamer.userId, streamer.userId, async (message) => {
+        const autoModListener = pubSubClient.onAutoModQueue(streamer.userId, streamer.userId, async (message) => {
             if (message.status === "PENDING") {
                 const { buildViewerFirebotChatMessageFromAutoModMessage } = require("../../chat/chat-helpers");
 
@@ -136,7 +119,7 @@ async function createClient() {
         });
         listeners.push(autoModListener);
 
-        const modListener = await pubSubClient.onModAction(streamer.userId, streamer.userId, (message) => {
+        const modListener = pubSubClient.onModAction(streamer.userId, streamer.userId, (message) => {
             const frontendCommunicator = require("../../common/frontend-communicator");
 
             switch (message.action) {
@@ -166,7 +149,7 @@ async function createClient() {
         });
         listeners.push(modListener);
 
-        const chatRoomListener = await pubSubClient.onCustomTopic(streamer.userId, "stream-chat-room-v1", async (event) => {
+        const chatRoomListener = pubSubClient.onCustomTopic(streamer.userId, "stream-chat-room-v1", async (event) => {
             const message = event?.data;
             if (message?.type === "extension_message") {
                 const twitchApi = require("../api").getClient();
