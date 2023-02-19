@@ -31,7 +31,7 @@ class TwitchChat extends EventEmitter {
      * Whether or not the streamer is currently connected
      */
     chatIsConnected() {
-        return this._streamerChatClient?.isConnected === true;
+        return this._streamerChatClient?.irc?.isConnected === true;
     }
 
     /**
@@ -39,11 +39,11 @@ class TwitchChat extends EventEmitter {
      */
     async disconnect(emitDisconnectEvent = true) {
         if (this._streamerChatClient != null) {
-            await this._streamerChatClient.quit();
+            this._streamerChatClient.quit();
             this._streamerChatClient = null;
         }
         if (this._botChatClient != null && this._botChatClient.isConnected) {
-            await this._botChatClient.quit();
+            this._botChatClient.quit();
             this._botChatClient = null;
         }
         if (emitDisconnectEvent) {
