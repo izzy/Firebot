@@ -154,11 +154,4 @@ exports.setupChatListeners = (streamerChatClient) => {
             subInfo.plan
         );
     });
-
-    streamerChatClient.onRaid((_channel, _username, raidInfo) => {
-        twitchEventsHandler.raid.triggerRaid(
-            raidInfo.displayName,
-            raidInfo.viewerCount
-        );
-    });
 };
