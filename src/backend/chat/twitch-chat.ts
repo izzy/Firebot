@@ -7,7 +7,6 @@ import accountAccess from "../common/account-access";
 import frontendCommunicator from "../common/frontend-communicator";
 import chatHelpers from "./chat-helpers";
 import twitchChatListeners from "./chat-listeners/twitch-chat-listeners";
-import followPoll from "../twitch-api/follow-poll";
 import chatterPoll from "../twitch-api/chatter-poll";
 import commandHandler from "./commands/commandHandler";
 import activeUserHandler, { User } from "./chat-listeners/active-user-handler";
@@ -63,7 +62,6 @@ class TwitchChat extends EventEmitter {
         if (emitDisconnectEvent) {
             this.emit("disconnected");
         }
-        followPoll.stopFollowPoll();
         chatterPoll.stopChatterPoll();
 
         activeUserHandler.clearAllActiveUsers();
@@ -139,7 +137,6 @@ class TwitchChat extends EventEmitter {
 
             twitchChatListeners.setupChatListeners(this._streamerChatClient);
 
-            followPoll.startFollowPoll();
             chatterPoll.startChatterPoll();
 
             const vips = await twitchApi.channels.getVips();
