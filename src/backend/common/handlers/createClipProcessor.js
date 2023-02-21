@@ -36,6 +36,7 @@ exports.createClip = async function(effect) {
         });
     } catch (err) {
         //failed to create clip
+        logger.debug("Failed to create a clip", err);
     }
 
     if (clipId == null) {
