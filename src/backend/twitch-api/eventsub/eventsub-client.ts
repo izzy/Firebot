@@ -48,7 +48,7 @@ class TwitchEventSubClient {
             this._subscriptions.push(offlineSubscription);
     
             // Follows
-            const followSubscription = this._eventSubListener.onChannelFollow(streamer.userId, (event) => {
+            const followSubscription = this._eventSubListener.onChannelFollow(streamer.userId, streamer.userId, (event) => {
                 twitchEventsHandler.follow.triggerFollow(
                     event.userId,
                     event.userName,
