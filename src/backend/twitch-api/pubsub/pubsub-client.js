@@ -4,8 +4,6 @@ const accountAccess = require("../../common/account-access");
 const frontendCommunicator = require("../../common/frontend-communicator");
 const firebotRefreshingAuthProvider = require("../../auth/firebot-refreshing-auth-provider");
 const chatRolesManager = require("../../roles/chat-roles-manager");
-const firebotRefreshingAuthProvider = require("../../auth/firebot-refreshing-auth-provider");
-const chatRolesManager = require("../../roles/chat-roles-manager");
 const { PubSubClient } = require("@twurple/pubsub");
 
 /**@type {PubSubClient} */
