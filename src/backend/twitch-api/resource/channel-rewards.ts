@@ -174,7 +174,7 @@ export class TwitchChannelRewardsApi {
         let reward: HelixCustomReward;
 
         try {
-            const response = await this.client.channelPoints.getCustomRewardById(
+            const response = await this.streamerClient.channelPoints.getCustomRewardById(
                 accountAccess.getAccounts().streamer.userId,
                 rewardId
             );
