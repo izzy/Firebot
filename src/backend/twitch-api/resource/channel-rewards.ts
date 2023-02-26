@@ -41,10 +41,12 @@ export interface CustomReward {
 };
 
 export class TwitchChannelRewardsApi {
-    client: ApiClient;
+    streamerClient: ApiClient;
+    botClient: ApiClient;
 
-    constructor(apiClient: ApiClient) {
-        this.client = apiClient;
+    constructor(streamerClient: ApiClient, botClient: ApiClient) {
+        this.streamerClient = streamerClient;
+        this.botClient = botClient;
     }
 
     private mapCustomRewardToCreateRewardPayload(reward: CustomReward): HelixCreateCustomRewardData {
@@ -152,7 +154,7 @@ export class TwitchChannelRewardsApi {
     async getCustomChannelRewards(onlyManageable: boolean = false): Promise<CustomReward[]> {
         let rewards = [];
         try {
-            const response = await this.client.channelPoints.getCustomRewards(
+            const response = await this.streamerClient.channelPoints.getCustomRewards(
                 accountAccess.getAccounts().streamer.userId,
                 onlyManageable
             );
@@ -211,7 +213,7 @@ export class TwitchChannelRewardsApi {
         const data = this.mapCustomRewardToCreateRewardPayload(reward);
     
         try {
-            const response = await this.client.channelPoints.createCustomReward(
+            const response = await this.streamerClient.channelPoints.createCustomReward(
                 accountAccess.getAccounts().streamer.userId,
                 data
             );
@@ -225,7 +227,7 @@ export class TwitchChannelRewardsApi {
 
     async updateCustomChannelReward(reward: CustomReward): Promise<boolean> {
         try {
-            await this.client.channelPoints.updateCustomReward(
+            await this.streamerClient.channelPoints.updateCustomReward(
                 accountAccess.getAccounts().streamer.userId,
                 reward.id,
                 this.mapCustomRewardToUpdateRewardPayload(reward)
@@ -239,7 +241,7 @@ export class TwitchChannelRewardsApi {
 
     async deleteCustomChannelReward(rewardId: string): Promise<boolean> {
         try {
-            await this.client.channelPoints.deleteCustomReward(accountAccess.getAccounts().streamer.userId, rewardId);
+            await this.streamerClient.channelPoints.deleteCustomReward(accountAccess.getAccounts().streamer.userId, rewardId);
             return true;
         } catch (err) {
             logger.error("Failed to update twitch custom channel reward", err);
@@ -249,7 +251,7 @@ export class TwitchChannelRewardsApi {
     
     async approveOrRejectChannelRewardRedemption(rewardId: string, redemptionId: string, approve: boolean = true): Promise<boolean> {
         try {
-            const response = await this.client.channelPoints.updateRedemptionStatusByIds(
+            const response = await this.streamerClient.channelPoints.updateRedemptionStatusByIds(
                 accountAccess.getAccounts().streamer.userId,
                 rewardId,
                 [redemptionId],
