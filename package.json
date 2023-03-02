@@ -7,7 +7,6 @@
     "start": "grunt prep && electron . --dev",
     "rebuild": "node-gyp rebuild --directory=node_modules/robotjs/ --runtime=electron --target=12.2.2 --arch=x64 --dist-url=https://artifacts.electronjs.org/headers/dist --abi=87 --force-process-config",
     "rebuild:new": "npm rebuild --runtime=electron --target=12.2.2 --disturl=https://artifacts.electronjs.org/headers/dist --abi=87",
-    "rebuild:darwin": "node-gyp rebuild --directory=node_modules/robotjs/ --runtime=electron --target=12.2.2 --arch=darwin --dist-url=https://artifacts.electronjs.org/headers/dist",
     "setup": "npm ci && npm rebuild && npm run rebuild",
     "build": "grunt build",
     "lint": "grunt lint"
@@ -140,6 +139,9 @@
     "winston-daily-rotate-file": "^1.4.6",
     "winston-raven-sentry": "^1.0.1",
     "ws": "^8.2.2"
+  },
+  "optionalDependencies": {
+    "electron-installer-dmg": "github:SReject/electron-installer-dmg#9bdb5217b078c724918271549f34d362aecbf6bb"
   },
   "volta": {
     "node": "14.18.1",

@@ -6,6 +6,11 @@ grunt compile
 'use strict';
 const path = require('path');
 module.exports = function (grunt) {
+
+    const macPathIn = path.resolve(__dirname, `../dist/pack/Firebot-darwin-x64/Firebot.app`);
+    const macPathOut = path.resolve(__dirname, '../dist/install/darwin');
+
+
     grunt.config.merge({
         'create-windows-installer': {
             win64: {
@@ -33,12 +38,32 @@ module.exports = function (grunt) {
                     dest: '/'
                 }]
             }
+        },
+        shell: {
+            'compile-darwin': {
+                command: `npx --no-install electron-installer-dmg "${macPathIn}" Firebot --out="${macPathOut}"`
+            }
         }
     });
 
     grunt.loadNpmTasks('grunt-electron-installer');
     grunt.loadNpmTasks('grunt-contrib-compress');
+    let compileCommand;
+    switch (grunt.config.get('platform')) {
+    case 'win64':
+        compileCommand = 'create-windows-installer:win64';
+        break;
 
-    const task = grunt.config.get('platform') === 'win64' ? 'create-windows-installer:win64' : 'compress:linux';
-    grunt.registerTask('compile', ['cleanup:install', task]);
+    case 'linux':
+        compileCommand = 'compress:linux';
+        break;
+
+    case 'darwin':
+        compileCommand = 'shell:compile-darwin';
+        break;
+
+    default:
+        throw new Error('unknonw platform');
+    }
+    grunt.registerTask('compile', ['cleanup:install', compileCommand]);
 };
