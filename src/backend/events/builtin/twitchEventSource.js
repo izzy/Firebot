@@ -648,8 +648,6 @@ module.exports = {
             queued: false,
             manualMetadata: {
                 total: "150",
-                progress: "150",
-                goal: "500",
                 level: "1"
             },
             activityFeed: {
