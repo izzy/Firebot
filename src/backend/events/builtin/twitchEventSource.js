@@ -775,6 +775,41 @@ module.exports = {
                     return `Charity campaign has ended. Goal reached: **${eventData.goalReached ? "Yes" : "No"}**. Total raised: **${eventData.currentTotalAmount} ${eventData.currentTotalCurrency}**.`;
                 }
             }
+        },
+        {
+            id: "shoutout-sent",
+            name: "Shoutout Sent",
+            description: "When you or a moderator sends a Twitch shoutout to another channel.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                moderator: "Firebot",
+                username: "zunderscore",
+                viewerCount: 10
+            },
+            activityFeed: {
+                icon: "fad fa-bullhorn",
+                getMessage: (eventData) => {
+                    return `${eventData.moderator} sent a shoutout to ${eventData.username}`;
+                }
+            }
+        },
+        {
+            id: "shoutout-received",
+            name: "Shoutout Received",
+            description: "When another channel sends you a Twitch shoutout.",
+            cached: false,
+            queued: false,
+            manualMetadata: {
+                username: "Firebot",
+                viewerCount: 10
+            },
+            activityFeed: {
+                icon: "fad fa-bullhorn",
+                getMessage: (eventData) => {
+                    return `${eventData.username} shouted out your channel to ${eventData.viewerCount} viewers`;
+                }
+            }
         }
     ]
 };

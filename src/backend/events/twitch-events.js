@@ -13,6 +13,7 @@ exports.poll = require('./twitch-events/poll');
 exports.prediction = require('./twitch-events/prediction');
 exports.raid = require('./twitch-events/raid');
 exports.rewardRedemption = require('./twitch-events/reward-redemption');
+exports.shoutout = require('./twitch-events/shoutout');
 exports.stream = require('./twitch-events/stream');
 exports.sub = require('./twitch-events/sub');
 exports.viewerArrived = require('./twitch-events/viewer-arrived');

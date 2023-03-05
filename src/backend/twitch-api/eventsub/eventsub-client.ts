@@ -148,7 +148,24 @@ class TwitchEventSubClient {
                 );
             });
             this._subscriptions.push(raidSubscription);
-    
+
+            const shoutoutSentSubscription = this._eventSubListener.onChannelShoutoutCreate(streamer.userId, streamer.userId, (event) => {
+                twitchEventsHandler.shoutout.triggerShoutoutSent(
+                    event.shoutedOutBroadcasterDisplayName,
+                    event.broadcasterDisplayName, // TODO - UPDATE AFTER TWURPLE FIXED
+                    event.viewerCount
+                )
+            });
+            this._subscriptions.push(shoutoutSentSubscription);
+
+            const shoutoutReceivedSubscription = this._eventSubListener.onChannelShoutoutReceive(streamer.userId, streamer.userId, (event) => {
+                twitchEventsHandler.shoutout.triggerShoutoutReceived(
+                    event.shoutingOutBroadcasterDisplayName,
+                    event.viewerCount
+                )
+            });
+            this._subscriptions.push(shoutoutReceivedSubscription);
+
             // Hype Train start
             const hypeTrainBeginSubscription = this._eventSubListener.onChannelHypeTrainBegin(streamer.userId, (event) => {
                 twitchEventsHandler.hypeTrain.triggerHypeTrainStart(
