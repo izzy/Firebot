@@ -176,6 +176,7 @@ exports.loadReplaceVariables = () => {
         'username',
         'usernameArray',
         'view-time',
+        'viewer-count',
         'whisper-message',
         'word'
     ].forEach(filename => {
