@@ -14,7 +14,7 @@ const model = {
         possibleDataOutput: [OutputDataType.NUMBER]
     },
     evaluator: (trigger) => {
-        return trigger.metadata.viewerCount;
+        return trigger.metadata.eventData.viewerCount;
     }
 };
 
