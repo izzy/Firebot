@@ -790,7 +790,7 @@ module.exports = {
             activityFeed: {
                 icon: "fad fa-bullhorn",
                 getMessage: (eventData) => {
-                    return `${eventData.moderator} sent a shoutout to ${eventData.username}`;
+                    return `**${eventData.moderator}** sent a shoutout to **${eventData.username}**`;
                 }
             }
         },
@@ -807,7 +807,7 @@ module.exports = {
             activityFeed: {
                 icon: "fad fa-bullhorn",
                 getMessage: (eventData) => {
-                    return `${eventData.username} shouted out your channel to ${eventData.viewerCount} viewers`;
+                    return `**${eventData.username}** shouted out your channel to ${eventData.viewerCount} viewers`;
                 }
             }
         }
