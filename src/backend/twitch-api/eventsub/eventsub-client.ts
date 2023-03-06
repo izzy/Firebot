@@ -20,15 +20,13 @@ class TwitchEventSubClient {
     
         try {
             this._eventSubListener = new EventSubWsListener({
-                apiClient: TwitchApi.getClient()
+                apiClient: TwitchApi.streamerClient
             });
     
             this._eventSubListener.start();
     
             // Stream online
             const onlineSubscription = this._eventSubListener.onStreamOnline(streamer.userId, (event) => {
-    
-    
                 twitchEventsHandler.stream.triggerStreamOnline(
                     event.broadcasterId,
                     event.broadcasterName,
@@ -431,13 +429,6 @@ class TwitchEventSubClient {
     }
 
     async removeSubscriptions(): Promise<void> {
-        for (const subscription of this._subscriptions) {
-            try {
-                subscription.stop();   
-            } catch (error) {
-                logger.debug("Failed to remove EventSub subscription", error);
-            }
-        }
         this._subscriptions = [];
     }
 
