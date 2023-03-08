@@ -220,7 +220,7 @@ export class TwitchChannelRewardsApi {
     
             return this.mapCustomRewardResponse(response);
         } catch (err) {
-            logger.error("Failed to create twitch custom channel reward", err);
+            logger.error("Failed to create twitch custom channel reward", err.message);
             return null;
         }
     }
@@ -234,7 +234,7 @@ export class TwitchChannelRewardsApi {
             );
             return true;
         } catch (err) {
-            logger.error("Failed to update twitch custom channel reward", err);
+            logger.error("Failed to update twitch custom channel reward", err.message);
             return false;
         }
     }
@@ -244,7 +244,7 @@ export class TwitchChannelRewardsApi {
             await this.streamerClient.channelPoints.deleteCustomReward(accountAccess.getAccounts().streamer.userId, rewardId);
             return true;
         } catch (err) {
-            logger.error("Failed to update twitch custom channel reward", err);
+            logger.error("Failed to update twitch custom channel reward", err.message);
             return false;
         }
     }
@@ -262,7 +262,7 @@ export class TwitchChannelRewardsApi {
     
             return true;
         } catch (error) {
-            logger.error(`Failed to ${approve ? "approve" : "reject"} channel reward redemption`);
+            logger.error(`Failed to ${approve ? "approve" : "reject"} channel reward redemption`, error.message);
             return false;
         }
     }
