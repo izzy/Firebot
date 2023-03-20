@@ -40,6 +40,8 @@ exports.loadReplaceVariables = () => {
         'bot',
         'category',
         'category-image-url',
+        'charity-campaign-goal',
+        'charity-campaign-total',
         'charity-description',
         'charity-logo',
         'charity-name',
