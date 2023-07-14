@@ -9,6 +9,8 @@ const logger = require("./logwrapper");
  * @property {string} tipeeeStreamClientSecret
  * @property {string} streamLabsClientId
  * @property {string} streamLabsClientSecret
+ * @property {string} fontAwesome5KitId
+ * @property {string} voicemodClientKey
  */
 
 /**@type {(keyof FirebotSecrets)[]} */
@@ -18,7 +20,8 @@ const expectedKeys = [
     "tipeeeStreamClientSecret",
     "streamLabsClientId",
     "streamLabsClientSecret",
-    "fontAwesome5KitId"
+    "fontAwesome5KitId",
+    "voicemodClientKey"
 ];
 
 exports.testSecrets = () => {
