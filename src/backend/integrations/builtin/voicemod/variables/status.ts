@@ -1,6 +1,18 @@
 import { ReplaceVariable } from "../../../../../types/variables";
 import { voicemod } from "../voicemod-connection";
 
+export const BackgroundEffectsStatusVariable: ReplaceVariable = {
+  definition: {
+    handle: "voicemodStatusBackgroundEffects",
+    description:
+      "Returns 1 if Background Effects is set to on in voicemod, 0 if it's off.",
+    possibleDataOutput: ["number"],
+  },
+  evaluator: async () => {
+    return (await voicemod.ws.getBackgroundEffectsStatus()) === true ? 1 : 0;
+  },
+};
+
 export const HearMyselfStatusVariable: ReplaceVariable = {
   definition: {
     handle: "voicemodStatusHearMyself",
