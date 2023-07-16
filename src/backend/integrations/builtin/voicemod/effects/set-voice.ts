@@ -34,7 +34,6 @@ export const SetVoiceEffectType: EffectType<{
 
     $q.when(backendCommunicator.fireEventAsync("voicemod-get-voice-list")).then(
       (voices: Voice[]) => {
-        console.log("got voices: ", voices);
         if (voices) {
           $scope.voices = voices;
           if ($scope.effect.voiceId) {
@@ -47,7 +46,6 @@ export const SetVoiceEffectType: EffectType<{
     );
 
     $scope.selectVoice = (voice: Voice) => {
-      console.log("selected voice: ", voice);
       if (voice) {
         $scope.effect.voiceId = voice.id;
       }

@@ -7,7 +7,7 @@ export const ToggleHearMyselfEffectType: EffectType<{
   actionStatus: boolean | string;
 }> = {
   definition: {
-    id: `${EVENT_SOURCE_ID}:enable-toggle-hear-myself`,
+    id: `${EVENT_SOURCE_ID}:toggle-hear-myself`,
     name: "Voicemod Toggle Hear Myself",
     description: "Enable or disable the hear myself feature in Voicemod",
     icon: "fad fa-play-circle",
@@ -33,7 +33,6 @@ export const ToggleHearMyselfEffectType: EffectType<{
     $scope.effect.actionStatus = $scope.effect.actionStatus ?? true;
 
     $scope.setStatusAction = (actionStatus: "toggle" | boolean) => {
-      console.log("selected actionStatus: ", actionStatus);
       $scope.effect.actionStatus = actionStatus ?? "";
     };
 
@@ -61,7 +60,6 @@ export const ToggleHearMyselfEffectType: EffectType<{
       nextState = effect.actionStatus;
     }
 
-    console.log("nextState: ", nextState);
     voicemod.ws.toggleHearMyVoice(nextState);
     return true;
   },

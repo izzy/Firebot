@@ -122,15 +122,11 @@ class VoicemodIntegration
           this.activeListeners.push("VoiceListChanged");
 
           voicemod.ws.on("VoiceChanged", (data) => {
-            //logger.debug("Voicemod voice changed: " + JSON.stringify(data));
             eventManager?.triggerEvent(EVENT_SOURCE_ID, EVENT_VOICE_CHANGED);
           });
           this.activeListeners.push("VoiceChanged");
 
           voicemod.ws.on("HearMyselfStatusChanged", (data) => {
-            // logger.debug(
-            //   "Voicemod hear myself toggled: " + JSON.stringify(data)
-            // );
             eventManager?.triggerEvent(
               EVENT_SOURCE_ID,
               EVENT_HEAR_MYSELF_CHANGED
@@ -139,9 +135,6 @@ class VoicemodIntegration
           this.activeListeners.push("HearMyselfStatusChanged");
 
           voicemod.ws.on("VoiceChangerStatusChanged", (data) => {
-            // logger.debug(
-            //   "Voicemod voice changer toggled, data: " + JSON.stringify(data)
-            // );
             eventManager?.triggerEvent(
               EVENT_SOURCE_ID,
               EVENT_VOICE_CHANGER_ENABLED_CHANGED
