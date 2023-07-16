@@ -36,3 +36,26 @@ export const VoiceChangerStatusVariable: ReplaceVariable = {
     return (await voicemod.ws.getVoiceChangerStatus()) === true ? 1 : 0;
   },
 };
+
+export const BeepSoundStatusVariable: ReplaceVariable = {
+  definition: {
+    handle: "voicemodStatusBeepSound",
+    description:
+      "Returns 1 if Beep Sound is set to on in voicemod, 0 if it's off.",
+    possibleDataOutput: ["number"],
+  },
+  evaluator: async () => {
+    return (await voicemod.ws.getBadLanguageStatus()) === true ? 1 : 0;
+  },
+};
+
+export const MuteMicStatusVariable: ReplaceVariable = {
+  definition: {
+    handle: "voicemodStatusMuteMic",
+    description: "Returns 1 if Mute is set to on in voicemod, 0 if it's off.",
+    possibleDataOutput: ["number"],
+  },
+  evaluator: async () => {
+    return (await voicemod.ws.getMuteMicStatus()) === true ? 1 : 0;
+  },
+};
