@@ -13,6 +13,8 @@ import {
   CurrentVoiceIdVariable,
   CurrentVoiceNameVariable,
 } from "./variables/voice";
+import { ToggleVoiceChangerEffectType } from "./effects/toggle-voicechanger";
+import { SetRandomVoiceEffectType } from "./effects/set-random-voice";
 
 export function registerEventSources() {
   eventManager.registerEventSource(VoicemodEventSource);
@@ -20,6 +22,8 @@ export function registerEventSources() {
 
 export function registerEffects() {
   effectManager.registerEffect(SetVoiceEffectType);
+  effectManager.registerEffect(SetRandomVoiceEffectType);
+  effectManager.registerEffect(ToggleVoiceChangerEffectType);
   effectManager.registerEffect(ToggleHearMyselfEffectType);
 }
 
