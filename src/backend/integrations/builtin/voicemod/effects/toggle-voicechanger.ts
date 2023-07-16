@@ -8,13 +8,13 @@ export const ToggleVoiceChangerEffectType: EffectType<{
 }> = {
   definition: {
     id: `${EVENT_SOURCE_ID}:toggle-voicechanger`,
-    name: "Voicemod Toggle voice changer",
+    name: "Voicemod Toggle Voice Changer",
     description: "Enable or disable the voice changer in Voicemod",
     icon: "fad fa-play-circle",
     categories: [EffectCategory.INTEGRATIONS],
   },
   optionsTemplate: `
-    <eos-container>
+    <eos-container header="Voicemod Toggle Voice Changer">
       <div class="btn-group" uib-dropdown>
 
         <button id="single-button" type="button" class="btn btn-default" uib-dropdown-toggle>

@@ -14,7 +14,7 @@ export const ToggleHearMyselfEffectType: EffectType<{
     categories: [EffectCategory.INTEGRATIONS],
   },
   optionsTemplate: `
-    <eos-container>
+    <eos-container header="Voicemod Toggle Hear Myself">
       <div class="btn-group" uib-dropdown>
 
         <button id="single-button" type="button" class="btn btn-default" uib-dropdown-toggle>
