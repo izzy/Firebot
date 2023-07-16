@@ -21,14 +21,18 @@ import { SetRandomVoiceEffectType } from "./effects/set-random-voice";
 import { ToggleBackgroundEffectsEffectType } from "./effects/toggle-background-effects";
 import { ToggleBeepEffectType } from "./effects/toggle-beep";
 import { ToggleMuteMicEffectType } from "./effects/toggle-mute-mic";
+import { PlaySoundEffectType } from "./effects/play-sound";
+import { StopSoundsEffectType } from "./effects/stop-sounds";
 
 export function registerEventSources() {
   eventManager.registerEventSource(VoicemodEventSource);
 }
 
 export function registerEffects() {
+  effectManager.registerEffect(PlaySoundEffectType);
   effectManager.registerEffect(SetRandomVoiceEffectType);
   effectManager.registerEffect(SetVoiceEffectType);
+  effectManager.registerEffect(StopSoundsEffectType);
   effectManager.registerEffect(ToggleBackgroundEffectsEffectType);
   effectManager.registerEffect(ToggleBeepEffectType);
   effectManager.registerEffect(ToggleHearMyselfEffectType);
