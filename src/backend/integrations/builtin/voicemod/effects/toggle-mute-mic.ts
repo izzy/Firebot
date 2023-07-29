@@ -8,7 +8,7 @@ export const ToggleMuteMicEffectType: EffectType<{
 }> = {
   definition: {
     id: `${EVENT_SOURCE_ID}:toggle-mute-mic`,
-    name: "Voicemod Toggle Micrphone Mute",
+    name: "Voicemod Toggle Microphone Mute",
     description: "Enable or disable the microphone mute in Voicemod",
     icon: "fad fa-play-circle",
     categories: [EffectCategory.INTEGRATIONS],
