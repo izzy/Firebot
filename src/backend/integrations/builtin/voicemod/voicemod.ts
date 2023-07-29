@@ -6,6 +6,7 @@ import {
   IntegrationController,
   IntegrationData,
   IntegrationEvents,
+  LinkData,
 } from "@crowbartools/firebot-custom-scripts-types";
 import { EventManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-manager";
 import { TypedEmitter } from "tiny-typed-emitter";
@@ -185,6 +186,16 @@ class VoicemodIntegration
     this.emit("disconnected", EVENT_SOURCE_ID);
     this.connected = false;
   }
+
+  async link(_linkData: LinkData): Promise<void> {
+    logger.debug("Linking Voicemod integration...");
+    return;
+  }
+
+  async unlink() {
+    logger.debug("Unlinking Voicemod integration...");
+    return;
+  }
 }
 
 const integrationConfig: Integration<VoicemodSettings> = {
@@ -193,7 +204,7 @@ const integrationConfig: Integration<VoicemodSettings> = {
     name: "Voicemod",
     description:
       "Connect to Voicemod to allow Firebot to change voice and enable the voice changer. Requires Voicemod to be installed and running.",
-    linkType: "none",
+    linkType: "other",
     configurable: true,
     connectionToggle: true,
     settingCategories: {
