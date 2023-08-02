@@ -91,7 +91,7 @@ export const PlaySoundEffectType: EffectType<{
           }
         })[0].FileName;
 
-        await voicemod.ws.playMeme(filename);
+        voicemod.ws.playMeme(filename);
       });
     });
     return true;

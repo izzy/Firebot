@@ -58,6 +58,6 @@ export const SetVoiceEffectType: EffectType<{
     return [];
   },
   onTriggerEvent: async (event) => {
-    await voicemod.ws.setVoice(event.effect.voiceId);
+    voicemod.ws.setVoice(event.effect.voiceId);
   },
 };

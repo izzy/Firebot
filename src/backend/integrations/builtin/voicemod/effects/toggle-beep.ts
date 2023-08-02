@@ -55,7 +55,7 @@ export const ToggleBeepEffectType: EffectType<{
   },
   onTriggerEvent: async ({ effect }) => {
     logger.debug("Voicemod Toggle Beep", effect.actionStatus);
-    await voicemod.ws.setBeepSound(effect.actionStatus);
+    voicemod.ws.setBeepSound(effect.actionStatus);
     return true;
   },
 };

@@ -57,6 +57,6 @@ export const SetRandomVoiceEffectType: EffectType<{
     return [];
   },
   onTriggerEvent: async (event) => {
-    await voicemod.ws.selectRandomVoice(event.effect.randomMode);
+    voicemod.ws.selectRandomVoice(event.effect.randomMode);
   },
 };
