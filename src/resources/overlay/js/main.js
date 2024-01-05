@@ -18,6 +18,12 @@ function overlaySocketConnect(){
 		ws.onopen = function(){
 			notification('close');
 			console.log(`Connection is opened on port ${overlayPort}...`);
+
+			const olInstance = params.get("instance");
+
+            sendWebsocketEvent("overlay-connected", {
+                instanceName: olInstance == null || olInstance === "" ? "Default" : olInstance
+            });
 		};
 
 		// When we get a message from the Firebot GUI...
@@ -30,17 +36,21 @@ function overlaySocketConnect(){
 			console.log(`Received Event: ${event}`);
 			console.log(`Overlay Instance: ${olInstance}, Event Instance: ${data.meta.overlayInstance}`)
 
-			if(olInstance != null && olInstance != "") {
-				if(data.meta.overlayInstance != olInstance) {
-					console.log("Event is for a different instance. Ignoring.")
-					return;
-				}
-			} else {
-				if(data.meta.overlayInstance != null && data.meta.overlayInstance != "") {
-					console.log("Event is for a specific instance. Ignoring.")
-					return;
-				}
-			}
+            if(!data.meta.global) {
+                if(olInstance != null && olInstance != "") {
+                    if(data.meta.overlayInstance != olInstance) {
+                        console.log("Event is for a different instance. Ignoring.")
+                        return;
+                    }
+                } else {
+                    if(data.meta.overlayInstance != null && data.meta.overlayInstance != "") {
+                        console.log("Event is for a specific instance. Ignoring.")
+                        return;
+                    }
+                }
+            } else {
+                console.log("Event is global. Processing.")
+            }
 
 			if(event == "OVERLAY:REFRESH") {
 				console.log(`Refreshing ${data.meta.overlayInstance || ""} overlay...`);
@@ -48,22 +58,6 @@ function overlaySocketConnect(){
 
 				return;
 			}
-
-            if(event == "getVideoDuration") {
-                const token = encodeURIComponent(data.meta.resourceToken);
-                const url = `http://${window.location.hostname}:7472/resource/${token}`;
-                const videoElement = `
-                        <video id="${token}" class="player" style="display:none;">
-                            <source src="${url}">
-                        </video>
-                    `;
-                $(".wrapper").append(videoElement);
-                const video = document.getElementById(token);
-                video.oncanplay = () => {
-                    sendWebsocketEvent("video-duration", {resourceToken: token, duration: Math.ceil(video.duration)});
-                    video.remove();
-                }
-            }
 
 			firebotOverlay.emit(event, data.meta);
 		};

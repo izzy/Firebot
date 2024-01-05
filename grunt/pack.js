@@ -19,9 +19,9 @@ const formatIgnoreList = ignoreList => {
             throw new Error('invalid ignore path');
         }
 
-        const escapedPath = item.path.replace(/[()[\]{}.?+*\\/^$]/, char => ('\\' + char));
+        const escapedPath = item.path.replace(/[()[\]{}.?+*\\/^$]/, char => (`\\${char}`));
 
-        return `--ignore="^[\\\\\\/]?${escapedPath}` + (item.isFile ? '$"' : '(?:$|[\\\\\\/])"');
+        return `--ignore="^[\\\\\\/]?${escapedPath}${item.isFile ? '$"' : '(?:$|[\\\\\\/])"'}`;
     });
 };
 
@@ -61,19 +61,21 @@ module.exports = function (grunt) {
         '--version-string.ProductName="Firebot v5"',
         '--executable-name="Firebot v5"',
         '--icon="./build/gui/images/icon_transparent.ico"',
+        '--protocol=firebot',
+        '--protocol-name="Firebot"',
         ...ignoreFlags
     ].join(' ');
 
     grunt.config.merge({
         shell: {
             packwin64: {
-                command: `npx --no-install --ignore-existing electron-packager . Firebot --platform=win32 ${flags}`
+                command: `npx --no-install electron-packager . Firebot --platform=win32 ${flags}`
             },
             packdarwin: {
-                command: `npx --no-install --ignore-existing electron-packager . Firebot --platform=darwin ${flags}`
+                command: `npx --no-install electron-packager . Firebot --platform=darwin ${flags}`
             },
             packlinux: {
-                command: `npx --no-install --ignore-existing electron-packager . Firebot --platform=linux ${flags}`
+                command: `npx --no-install electron-packager . Firebot --platform=linux ${flags}`
             }
         }
     });

@@ -12,7 +12,7 @@ exports.setupCommonListeners = () => {
     const dataAccess = require("./data-access");
     const profileManager = require("./profile-manager");
     const { settings } = require("./settings-access");
-    const backupManager = require("../backupManager");
+    const backupManager = require("../backup-manager");
     const webServer = require("../../server/http-server-manager");
 
     frontendCommunicator.on("show-twitch-preview", () => {
@@ -117,10 +117,10 @@ exports.setupCommonListeners = () => {
     // This listens for an event from the render media.js file to open a dialog to get a filepath.
     ipcMain.on("getBackupZipPath", (event, uniqueid) => {
         const backupsFolderPath = path.resolve(
-            dataAccess.getUserDataPath() + path.sep + "backups" + path.sep
+            `${dataAccess.getUserDataPath() + path.sep}backups${path.sep}`
         );
 
-        const fs = require("fs-extra");
+        const fs = require("fs");
         let backupsFolderExists = false;
         try {
             backupsFolderExists = fs.existsSync(backupsFolderPath);
@@ -141,7 +141,7 @@ exports.setupCommonListeners = () => {
     ipcMain.on("openBackupFolder", () => {
         // We include "fakefile.txt" as a workaround to make it open into the 'root' folder instead
         // of opening to the poarent folder with 'Firebot'folder selected.
-        const backupFolder = path.resolve(dataAccess.getUserDataPath() + path.sep + "backups" + path.sep);
+        const backupFolder = path.resolve(`${dataAccess.getUserDataPath() + path.sep}backups${path.sep}`);
         shell.openPath(backupFolder);
     });
 
@@ -196,22 +196,21 @@ exports.setupCommonListeners = () => {
         webServer.sendToOverlay(data.event, data.meta);
     });
 
-    ipcMain.on("downloadUpdate", () => {
+    const updaterOptions = {
+        repo: "crowbartools/firebot",
+        currentVersion: app.getVersion()
+    };
 
+    ipcMain.on("downloadUpdate", async () => {
         const GhReleases = require("electron-gh-releases");
 
         //back up first
         if (settings.backupBeforeUpdates()) {
-            backupManager.startBackup();
+            await backupManager.startBackup();
         }
 
         // Download Update
-        const options = {
-            repo: "crowbartools/firebot",
-            currentVersion: app.getVersion()
-        };
-
-        const updater = new GhReleases(options);
+        const updater = new GhReleases(updaterOptions);
 
         updater.check(err => {
             // Download the update
@@ -224,21 +223,28 @@ exports.setupCommonListeners = () => {
 
         // When an update has been downloaded
         updater.on("update-downloaded", () => {
-            logger.info("Updated downloaded. Installing...");
+            logger.info("Updated downloaded.");
             //let the front end know and wait a few secs.
             renderWindow.webContents.send("updateDownloaded");
 
-            setTimeout(function() {
-                // Restart the app and install the update
-                settings.setJustUpdated(true);
-
-                updater.install();
-            }, 3 * 1000);
+            // Prepare for update install on next run
+            settings.setJustUpdated(true);
         });
+    });
+
+    ipcMain.on("installUpdate", () => {
+        logger.info("Installing update...");
+        renderWindow.webContents.send("installingUpdate");
+
+        const GhReleases = require("electron-gh-releases");
+
+        // Download Update
+        const updater = new GhReleases(updaterOptions);
+
+        updater.install();
 
         // Access electrons autoUpdater
         // eslint-disable-next-line no-unused-expressions
         updater.autoUpdater;
     });
 };
-

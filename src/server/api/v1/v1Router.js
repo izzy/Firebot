@@ -2,7 +2,6 @@
 
 const express = require("express");
 const router = express.Router(); //eslint-disable-line new-cap
-const path = require('path');
 const logger = require("../../../backend/logwrapper");
 
 router.use(function log(req, res, next) {
@@ -190,5 +189,35 @@ router
 router
     .route("/timers/:timerId")
     .get(timers.getTimerById);
+
+const queues = require("./controllers/effectQueuesApiController");
+
+router
+    .route("/queues")
+    .get(queues.getQueues);
+
+router
+    .route("/queues/:queueId")
+    .get(queues.getQueueById);
+
+router
+    .route("/queues/:queueId/pause")
+    .get(queues.pauseQueue)
+    .post(queues.pauseQueue);
+
+router
+    .route("/queues/:queueId/resume")
+    .get(queues.resumeQueue)
+    .post(queues.resumeQueue);
+
+router
+    .route("/queues/:queueId/toggle")
+    .get(queues.toggleQueue)
+    .post(queues.toggleQueue);
+
+router
+    .route("/queues/:queueId/clear")
+    .get(queues.clearQueue)
+    .post(queues.clearQueue);
 
 module.exports = router;

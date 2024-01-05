@@ -9,12 +9,12 @@ const communitySubCache = new NodeCache({ stdTTL: 10, checkperiod: 2 });
 interface CommunityGiftSubRecipient {
     gifteeUsername: string,
     giftSubMonths: number
-};
+}
 
 interface CommunityGiftSubCache {
     subCount: number,
     giftReceivers: CommunityGiftSubRecipient[]
-};
+}
 
 export function triggerCommunitySubGift(
     gifterDisplayName: string,
@@ -23,10 +23,12 @@ export function triggerCommunitySubGift(
 ): void {
     logger.debug(`Received ${subCount} community gift subs from ${gifterDisplayName} at ${DateTime.now().toFormat("HH:mm:ss:SSS")}`);
     communitySubCache.set<CommunityGiftSubCache>(`${gifterDisplayName}:${subPlan}`, {subCount, giftReceivers: []});
-};
+}
 
 export function triggerSubGift(
     gifterDisplayName: string,
+    gifterUserName: string,
+    gifterUserId: string,
     isAnonymous: boolean,
     gifteeDisplayName: string,
     subPlan: string,
@@ -53,6 +55,8 @@ export function triggerSubGift(
                     } else {
                         eventManager.triggerEvent("twitch", "community-subs-gifted", {
                             username: gifterDisplayName,
+                            userIdName: gifterUserName,
+                            userId: gifterUserId,
                             subCount: giftReceivers.length,
                             subPlan,
                             isAnonymous,
@@ -76,6 +80,8 @@ export function triggerSubGift(
 
     eventManager.triggerEvent("twitch", "subs-gifted", {
         username: gifterDisplayName,
+        userIdName: gifterUserName,
+        userId: gifterUserId,
         giftSubMonths,
         gifteeUsername: gifteeDisplayName,
         gifterUsername: gifterDisplayName,
@@ -84,17 +90,21 @@ export function triggerSubGift(
         giftDuration
     });
     logger.debug(`Gift Sub event triggered`);
-};
+}
 
 export function triggerSubGiftUpgrade(
+    gifteeUserName: string,
     gifteeDisplayName: string,
+    gifteeUserId: string,
     gifterDisplayName: string,
     subPlan: string
 ): void {
     eventManager.triggerEvent("twitch", "gift-sub-upgraded", {
         username: gifteeDisplayName,
+        userIdName: gifteeUserName,
+        userId: gifteeUserId,
         gifterUsername: gifterDisplayName,
         gifteeUsername: gifteeDisplayName,
         subPlan
     });
-};
+}

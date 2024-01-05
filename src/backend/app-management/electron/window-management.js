@@ -1,7 +1,7 @@
 "use strict";
 
 const electron = require("electron");
-const { BrowserWindow, BrowserView, Menu, shell, dialog } = electron;
+const { ipcMain, BrowserWindow, BrowserView, Menu, shell, dialog, nativeImage } = electron;
 const path = require("path");
 const url = require("url");
 const windowStateKeeper = require("electron-window-state");
@@ -9,378 +9,14 @@ const fileOpenHelpers = require("../file-open-helpers");
 const createTray = require('./tray-creation.js');
 const logger = require("../../logwrapper");
 const { setupTitlebar, attachTitlebarToWindow } = require("custom-electron-titlebar/main");
+const screenHelpers = require("./screen-helpers");
+const frontendCommunicator = require("../../common/frontend-communicator");
+const { settings } = require("../../common/settings-access");
 
 setupTitlebar();
 
 /**
- * Firebot's main window
- * Keeps a global reference of the window object, if you don't, the window will
- * be closed automatically when the JavaScript object is garbage collected.
- *@type {Electron.BrowserWindow}
- */
-exports.mainWindow = null;
-
-/**
- * The splashscreen window.
- *@type {Electron.BrowserWindow}
- */
-let splashscreenWindow;
-
-
-function createMainWindow() {
-    const mainWindowState = windowStateKeeper({
-        defaultWidth: 1280,
-        defaultHeight: 720
-    });
-
-    // Create the browser window.
-    const mainWindow = new BrowserWindow({
-        x: mainWindowState.x,
-        y: mainWindowState.y,
-        width: mainWindowState.width,
-        height: mainWindowState.height,
-        minWidth: 300,
-        minHeight: 50,
-        icon: path.join(__dirname, "../../../gui/images/logo_transparent_2.png"),
-        show: false,
-        titleBarStyle: "hiddenInset",
-        backgroundColor: "#1E2023",
-        frame: false,
-        webPreferences: {
-            nodeIntegration: true,
-            nativeWindowOpen: true,
-            backgroundThrottling: false,
-            contextIsolation: false,
-            worldSafeExecuteJavaScript: false,
-            enableRemoteModule: true
-        }
-    });
-
-    mainWindow.webContents.setWindowOpenHandler(({ frameName, url }) => {
-        if (frameName === 'modal') {
-            return {
-                action: 'allow',
-                overrideBrowserWindowOptions: {
-                    title: "Firebot",
-                    frame: true,
-                    titleBarStyle: "default",
-                    parent: mainWindow,
-                    width: 250,
-                    height: 400,
-                    javascript: false
-                }
-            };
-        }
-
-        shell.openExternal(url);
-        return { action: "deny" };
-    });
-
-    //set a global reference, lots of backend files depend on this being available globally
-    exports.mainWindow = mainWindow;
-    global.renderWindow = mainWindow;
-
-    const frontendCommunicator = require("../../common/frontend-communicator");
-    const profileManager = require("../../common/profile-manager");
-    const dataAccess = require("../../common/data-access");
-    const menuTemplate = [
-        {
-            label: 'File',
-            submenu: [
-                {
-                    label: 'Import Firebot Setup...',
-                    click: () => {
-                        frontendCommunicator.send("open-modal", {
-                            component: "importSetupModal"
-                        });
-                    }
-                },
-                {
-                    type: 'separator'
-                },
-                {
-                    label: 'Open Data Folder',
-                    toolTip: "Open the folder where Firebot data is stored",
-                    click: () => {
-                        const rootFolder = path.resolve(
-                            profileManager.getPathInProfile("/")
-                        );
-                        shell.openPath(rootFolder);
-                    }
-                },
-                {
-                    label: 'Open Logs Folder',
-                    toolTip: "Open the folder where logs are stored",
-                    click: () => {
-                        const rootFolder = path.resolve(
-                            dataAccess.getPathInUserData("/logs/")
-                        );
-                        shell.openPath(rootFolder);
-                    }
-                },
-                {
-                    label: 'Open Backups Folder',
-                    toolTip: "Open the folder where backups are stored",
-                    click: () => {
-                        const backupFolder = path.resolve(
-                            dataAccess.getPathInUserData("/backups/")
-                        );
-                        shell.openPath(backupFolder);
-                    }
-                },
-                {
-                    type: 'separator'
-                },
-                {
-                    role: 'quit'
-                }
-            ]
-        },
-        {
-            label: 'Edit',
-            submenu: [
-                {
-                    role: 'cut'
-                },
-                {
-                    role: 'copy'
-                },
-                {
-                    role: 'paste'
-                },
-                {
-                    role: "undo"
-                },
-                {
-                    role: "redo"
-                },
-                {
-                    role: "selectAll"
-                }
-            ]
-        },
-        {
-            label: 'Window',
-            submenu: [
-                {
-                    role: 'minimize'
-                },
-                {
-                    role: 'close'
-                }
-            ]
-        },
-        {
-            label: 'Tools',
-            submenu: [
-                {
-                    label: 'Setup Wizard',
-                    toolTip: "Run the setup wizard again",
-                    click: () => {
-                        frontendCommunicator.send("open-modal", {
-                            component: "setupWizardModal"
-                        });
-                    }
-                },
-                {
-                    label: 'Restore from backup...',
-                    toolTip: "Restores Firebot from a backup",
-                    click: async () => {
-                        frontendCommunicator.send("restore-backup");
-                    }
-                },
-                {
-                    label: 'Custom Variable Inspector',
-                    toolTip: "Open the custom variable inspector",
-                    click: () => {
-                        // eslint-disable-next-line no-use-before-define
-                        createVariableInspectorWindow();
-                    }
-                },
-                {
-                    type: 'separator'
-                },
-                {
-                    role: 'toggledevtools'
-                }
-            ]
-        },
-        {
-            role: 'Help',
-            submenu: [
-                {
-                    label: 'Join our Discord',
-                    click: () => {
-                        shell.openExternal("https://discord.gg/tTmMbrG");
-                    }
-                },
-                {
-                    label: 'Follow @FirebotApp on Twitter',
-                    click: () => {
-                        shell.openExternal("https://twitter.com/FirebotApp");
-                    }
-                },
-                {
-                    type: 'separator'
-                },
-                {
-                    label: 'View Source on GitHub',
-                    click: () => {
-                        shell.openExternal("https://github.com/crowbartools/Firebot");
-                    }
-                },
-                {
-                    label: 'Report a Bug',
-                    click: () => {
-                        shell.openExternal("https://github.com/crowbartools/Firebot/issues/new?assignees=&labels=Bug&template=bug_report.yml&title=%5BBug%5D+");
-                    }
-                },
-                {
-                    label: 'Request a Feature',
-                    click: () => {
-                        shell.openExternal("https://github.com/crowbartools/Firebot/issues/new?assignees=&labels=Enhancement&template=feature_request.md&title=%5BFeature+Request%5D+");
-                    }
-                },
-                {
-                    type: 'separator'
-                },
-                {
-                    label: 'Merch Store',
-                    click: () => {
-                        shell.openExternal("https://crowbar-tools.myspreadshop.com");
-                    }
-                },
-                {
-                    label: 'Donate',
-                    click: () => {
-                        shell.openExternal("https://opencollective.com/crowbartools");
-                    }
-                },
-                {
-                    label: 'Submit a Testimonial',
-                    click: () => {
-                        shell.openExternal("https://firebot.app/testimonial-submission");
-                    }
-                },
-                {
-                    type: 'separator'
-                },
-                {
-                    label: 'About Firebot...',
-                    click: () => {
-                        frontendCommunicator.send("open-about-modal");
-                    }
-                }
-            ]
-        }
-    ];
-
-    const menu = Menu.buildFromTemplate(menuTemplate);
-    Menu.setApplicationMenu(menu);
-
-    attachTitlebarToWindow(mainWindow);
-
-    // register listeners on the window, so we can update the state
-    // automatically (the listeners will be removed when the window is closed)
-    // and restore the maximized or full screen state
-    mainWindowState.manage(mainWindow);
-
-    // and load the index.html of the app.
-    mainWindow.loadURL(
-        url.format({
-            pathname: path.join(__dirname, "../../../gui/app/index.html"),
-            protocol: "file:",
-            slashes: true
-        })
-    );
-
-    // wait for the main window's content to load, then show it
-    mainWindow.webContents.on("did-finish-load", () => {
-
-        createTray(mainWindow);
-
-        mainWindow.show();
-        if (splashscreenWindow) {
-            splashscreenWindow.destroy();
-        }
-
-        const startupScriptsManager = require("../../common/handlers/custom-scripts/startup-scripts-manager");
-        startupScriptsManager.runStartupScripts();
-
-        const eventManager = require("../../events/EventManager");
-        eventManager.triggerEvent("firebot", "firebot-started", {
-            username: "Firebot"
-        });
-
-        fileOpenHelpers.setWindowReady(true);
-    });
-
-
-    mainWindow.on("close", (event) => {
-        const connectionManager = require("../../common/connection-manager");
-        const { settings } = require("../../common/settings-access");
-        if (!settings.hasJustUpdated() && connectionManager.chatIsConnected() && connectionManager.streamerIsOnline()) {
-            event.preventDefault();
-            dialog.showMessageBox(mainWindow, {
-                message: "Are you sure you want to close Firebot while connected to Twitch?",
-                title: "Close Firebot",
-                type: "question",
-                buttons: ["Close Firebot", "Cancel"]
-
-            }).then(({response}) => {
-                if (response === 0) {
-                    mainWindow.destroy();
-                }
-            }).catch(() => console.log("Error with close app confirmation"));
-        }
-    });
-}
-
-/**
- * Creates the splash screen
- */
-const createSplashScreen = async () => {
-    const isLinux = process.platform !== 'win32' && process.platform !== 'darwin';
-    const splash = new BrowserWindow({
-        width: 240,
-        height: 325,
-        icon: path.join(__dirname, "../../../gui/images/logo_transparent_2.png"),
-        transparent: !isLinux,
-        backgroundColor: isLinux ? "#34363C" : undefined,
-        frame: false,
-        closable: false,
-        fullscreenable: false,
-        movable: false,
-        resizable: false,
-        center: true,
-        show: false,
-        webPreferences: {
-            nodeIntegration: true
-        }
-    });
-    splashscreenWindow = splash;
-
-    splash.on("ready-to-show", () => {
-        logger.debug("...Showing splash screen");
-        splash.show();
-    });
-
-    logger.debug("...Attempting to load splash screen url");
-    return splash.loadURL(
-        url.format({
-            pathname: path.join(__dirname, "../../../gui/splashscreen/splash.html"),
-            protocol: "file:",
-            slashes: true
-        }))
-        .then(() => {
-            logger.debug("Loaded splash screen");
-        }).catch((reason) => {
-            logger.error("Failed to load splash screen", reason);
-        });
-};
-
-/**
- * Firebot's main window
+ * The stream preview popout window.
  * Keeps a global reference of the window object, if you don't, the window will
  * be closed automatically when the JavaScript object is garbage collected.
  *@type {Electron.BrowserWindow}
@@ -451,6 +87,442 @@ function createStreamPreviewWindow() {
             view.destroy();
         }
     });
+}
+
+async function createIconImage(relativeIconPath) {
+    const iconPath = path.resolve(__dirname, relativeIconPath);
+    if (process.platform === "darwin") {
+        try {
+            return await nativeImage.createThumbnailFromPath(iconPath, {
+                width: 14,
+                height: 14
+            });
+        } catch (e) {
+            logger.error(`Failed to create icon image for path: ${relativeIconPath}`, relativeIconPath, e);
+            return;
+        }
+    }
+    return iconPath;
+}
+
+/**
+ * Firebot's main window
+ * Keeps a global reference of the window object, if you don't, the window will
+ * be closed automatically when the JavaScript object is garbage collected.
+ *@type {Electron.BrowserWindow}
+ */
+exports.mainWindow = null;
+
+/**
+ * The splashscreen window.
+ *@type {Electron.BrowserWindow}
+ */
+let splashscreenWindow;
+
+async function createMainWindow() {
+    const mainWindowState = windowStateKeeper({
+        defaultWidth: 1280,
+        defaultHeight: 720
+    });
+
+    ipcMain.on('preload.openDevTools', (event) => {
+        if (exports.mainWindow != null) {
+            exports.mainWindow.webContents.openDevTools();
+            event.returnValue = true;
+        }
+        event.returnValue = false;
+    });
+
+    // Create the browser window.
+    const mainWindow = new BrowserWindow({
+        x: mainWindowState.x,
+        y: mainWindowState.y,
+        width: mainWindowState.width,
+        height: mainWindowState.height,
+        minWidth: 300,
+        minHeight: 50,
+        icon: path.join(__dirname, "../../../gui/images/logo_transparent_2.png"),
+        show: false,
+        titleBarStyle: "hiddenInset",
+        backgroundColor: "#1E2023",
+        frame: false,
+        webPreferences: {
+            nodeIntegration: true,
+            nativeWindowOpen: true,
+            backgroundThrottling: false,
+            contextIsolation: false,
+            worldSafeExecuteJavaScript: false,
+            enableRemoteModule: true,
+            sandbox: false,
+            preload: path.join(__dirname, './preload.js')
+        }
+    });
+
+    mainWindow.webContents.setWindowOpenHandler(({ frameName, url }) => {
+        if (frameName === 'modal') {
+            return {
+                action: 'allow',
+                overrideBrowserWindowOptions: {
+                    title: "Firebot",
+                    frame: true,
+                    titleBarStyle: "default",
+                    parent: mainWindow,
+                    width: 250,
+                    height: 400,
+                    javascript: false
+                }
+            };
+        }
+
+        shell.openExternal(url);
+        return { action: "deny" };
+    });
+
+    //set a global reference, lots of backend files depend on this being available globally
+    exports.mainWindow = mainWindow;
+    global.renderWindow = mainWindow;
+
+    const profileManager = require("../../common/profile-manager");
+    const dataAccess = require("../../common/data-access");
+    const menuTemplate = [
+        {
+            label: 'File',
+            submenu: [
+                {
+                    label: 'Import Firebot Setup...',
+                    click: () => {
+                        frontendCommunicator.send("open-modal", {
+                            component: "importSetupModal"
+                        });
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/import.png")
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: 'Open Data Folder',
+                    toolTip: "Open the folder where Firebot data is stored",
+                    sublabel: "Open the folder where Firebot data is stored",
+                    click: () => {
+                        const rootFolder = path.resolve(
+                            profileManager.getPathInProfile("/")
+                        );
+                        shell.openPath(rootFolder);
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/folder-account-outline.png")
+                },
+                {
+                    label: 'Open Logs Folder',
+                    toolTip: "Open the folder where logs are stored",
+                    sublabel: "Open the folder where logs are stored",
+                    click: () => {
+                        const rootFolder = path.resolve(
+                            dataAccess.getPathInUserData("/logs/")
+                        );
+                        shell.openPath(rootFolder);
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/folder-text-outline.png")
+                },
+                {
+                    label: 'Open Backups Folder',
+                    toolTip: "Open the folder where backups are stored",
+                    sublabel: "Open the folder where backups are stored",
+                    click: () => {
+                        const backupFolder = path.resolve(
+                            dataAccess.getPathInUserData("/backups/")
+                        );
+                        shell.openPath(backupFolder);
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/folder-refresh-outline.png")
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    role: 'quit',
+                    icon: await createIconImage("../../../gui/images/icons/mdi/exit-run.png")
+                }
+            ]
+        },
+        {
+            label: 'Edit',
+            submenu: [
+                {
+                    role: 'cut',
+                    icon: await createIconImage("../../../gui/images/icons/mdi/content-cut.png")
+                },
+                {
+                    role: 'copy',
+                    icon: await createIconImage("../../../gui/images/icons/mdi/content-copy.png")
+                },
+                {
+                    role: 'paste',
+                    icon: await createIconImage("../../../gui/images/icons/mdi/content-paste.png")
+                },
+                {
+                    role: "undo",
+                    icon: await createIconImage("../../../gui/images/icons/mdi/undo.png")
+                },
+                {
+                    role: "redo",
+                    icon: await createIconImage("../../../gui/images/icons/mdi/redo.png")
+                },
+                {
+                    role: "selectAll",
+                    icon: await createIconImage("../../../gui/images/icons/mdi/select-all.png")
+                }
+            ]
+        },
+        {
+            label: 'Window',
+            submenu: [
+                {
+                    role: 'minimize',
+                    icon: await createIconImage("../../../gui/images/icons/mdi/window-minimize.png")
+                },
+                {
+                    role: 'close',
+                    icon: await createIconImage("../../../gui/images/icons/mdi/window-close.png")
+                }
+            ]
+        },
+        {
+            label: 'Tools',
+            submenu: [
+                {
+                    label: 'Setup Wizard',
+                    toolTip: "Run the setup wizard again",
+                    sublabel: "Run the setup wizard again",
+                    click: () => {
+                        frontendCommunicator.send("open-modal", {
+                            component: "setupWizardModal"
+                        });
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/auto-fix.png")
+                },
+                {
+                    label: 'Restore from backup...',
+                    toolTip: "Restores Firebot from a backup",
+                    sublabel: "Restores Firebot from a backup",
+                    click: async () => {
+                        frontendCommunicator.send("restore-backup");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/backup-restore.png")
+                },
+                {
+                    label: 'Custom Variable Inspector',
+                    toolTip: "Open the custom variable inspector",
+                    sublabel: "Open the custom variable inspector",
+                    click: () => {
+                        // eslint-disable-next-line no-use-before-define
+                        createVariableInspectorWindow();
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/text-search.png")
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    role: 'toggledevtools',
+                    icon: await createIconImage("../../../gui/images/icons/mdi/tools.png")
+                }
+            ]
+        },
+        {
+            role: 'Help',
+            submenu: [
+                {
+                    label: 'Join our Discord',
+                    click: () => {
+                        shell.openExternal("https://discord.gg/tTmMbrG");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/discord.png")
+                },
+                {
+                    label: 'Follow @FirebotApp on Twitter',
+                    click: () => {
+                        shell.openExternal("https://twitter.com/FirebotApp");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/twitter.png")
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: 'View Source on GitHub',
+                    click: () => {
+                        shell.openExternal("https://github.com/crowbartools/Firebot");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/source-branch.png")
+                },
+                {
+                    label: 'Report a Bug',
+                    click: () => {
+                        shell.openExternal("https://github.com/crowbartools/Firebot/issues/new?assignees=&labels=Bug&template=bug_report.yml&title=%5BBug%5D+");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/bug-outline.png")
+                },
+                {
+                    label: 'Request a Feature',
+                    click: () => {
+                        shell.openExternal("https://github.com/crowbartools/Firebot/issues/new?assignees=&labels=Enhancement&template=feature_request.md&title=%5BFeature+Request%5D+");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/star-circle-outline.png")
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: 'Merch Store',
+                    click: () => {
+                        shell.openExternal("https://crowbar-tools.myspreadshop.com");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/shopping-outline.png")
+                },
+                {
+                    label: 'Donate',
+                    click: () => {
+                        shell.openExternal("https://opencollective.com/crowbartools");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/hand-heart-outline.png")
+                },
+                {
+                    label: 'Submit a Testimonial',
+                    click: () => {
+                        shell.openExternal("https://firebot.app/testimonial-submission");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/account-heart-outline.png")
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: 'About Firebot...',
+                    click: () => {
+                        frontendCommunicator.send("open-about-modal");
+                    },
+                    icon: await createIconImage("../../../gui/images/icons/mdi/information-outline.png")
+                }
+            ]
+        }
+    ];
+
+    const menu = Menu.buildFromTemplate(menuTemplate);
+    Menu.setApplicationMenu(menu);
+
+    attachTitlebarToWindow(mainWindow);
+
+    // register listeners on the window, so we can update the state
+    // automatically (the listeners will be removed when the window is closed)
+    // and restore the maximized or full screen state
+    mainWindowState.manage(mainWindow);
+
+    // and load the index.html of the app.
+    mainWindow.loadURL(
+        url.format({
+            pathname: path.join(__dirname, "../../../gui/app/index.html"),
+            protocol: "file:",
+            slashes: true
+        })
+    );
+
+    // wait for the main window's content to load, then show it
+    mainWindow.webContents.on("did-finish-load", () => {
+
+
+        createTray(mainWindow);
+
+        // mainWindow.webContents.openDevTools();
+        mainWindow.show();
+
+        // mainWindow.show();
+        if (splashscreenWindow) {
+            splashscreenWindow.destroy();
+        }
+
+        const startupScriptsManager = require("../../common/handlers/custom-scripts/startup-scripts-manager");
+        startupScriptsManager.runStartupScripts();
+
+        const eventManager = require("../../events/EventManager");
+        eventManager.triggerEvent("firebot", "firebot-started", {
+            username: "Firebot"
+        });
+
+        if (settings.getOpenStreamPreviewOnLaunch() === true) {
+            createStreamPreviewWindow();
+        }
+
+        fileOpenHelpers.setWindowReady(true);
+    });
+
+
+    mainWindow.on("close", (event) => {
+        const connectionManager = require("../../common/connection-manager");
+        if (!settings.hasJustUpdated() && connectionManager.chatIsConnected() && connectionManager.streamerIsOnline()) {
+            event.preventDefault();
+            dialog.showMessageBox(mainWindow, {
+                message: "Are you sure you want to close Firebot while connected to Twitch?",
+                title: "Close Firebot",
+                type: "question",
+                buttons: ["Close Firebot", "Cancel"]
+
+            }).then(({response}) => {
+                if (response === 0) {
+                    mainWindow.destroy();
+                }
+            }).catch(() => console.log("Error with close app confirmation"));
+        }
+    });
+}
+
+/**
+ * Creates the splash screen
+ */
+const createSplashScreen = async () => {
+    splashscreenWindow = new BrowserWindow({
+        width: 375,
+        height: 420,
+        icon: path.join(__dirname, "../../../gui/images/logo_transparent_2.png"),
+        transparent: true,
+        backgroundColor: undefined,
+        frame: false,
+        closable: false,
+        fullscreenable: false,
+        movable: false,
+        resizable: false,
+        center: true,
+        show: false,
+        webPreferences: {
+            preload: path.join(__dirname, "../../../gui/splashscreen/preload.js")
+        }
+    });
+
+    splashscreenWindow.once("ready-to-show", () => {
+        logger.debug("...Showing splash screen");
+        splashscreenWindow.show();
+    });
+
+    logger.debug("...Attempting to load splash screen url");
+    return splashscreenWindow.loadURL(
+        url.format({
+            pathname: path.join(__dirname, "../../../gui/splashscreen/splash.html"),
+            protocol: "file:",
+            slashes: true
+        }))
+        .then(() => {
+            logger.debug("Loaded splash screen");
+        }).catch((reason) => {
+            logger.error("Failed to load splash screen", reason);
+        });
+};
+
+function updateSplashScreenStatus(newStatus) {
+    if (splashscreenWindow == null || splashscreenWindow.isDestroyed()) {
+        return;
+    }
+
+    splashscreenWindow.webContents.send("update-splash-screen-status", newStatus);
 }
 
 /**
@@ -542,6 +614,19 @@ function sendVariableDeleteToInspector(key) {
     });
 }
 
+frontendCommunicator.on("getAllDisplays", () => {
+    return screenHelpers.getAllDisplays();
+});
+
+frontendCommunicator.on("getPrimaryDisplay", () => {
+    return screenHelpers.getPrimaryDisplay();
+});
+
+frontendCommunicator.on("takeScreenshot", (displayId) => {
+    return screenHelpers.takeScreenshot(displayId);
+});
+
+exports.updateSplashScreenStatus = updateSplashScreenStatus;
 exports.createVariableInspectorWindow = createVariableInspectorWindow;
 exports.sendVariableCreateToInspector = sendVariableCreateToInspector;
 exports.sendVariableExpireToInspector = sendVariableExpireToInspector;

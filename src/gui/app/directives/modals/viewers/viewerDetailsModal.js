@@ -1,9 +1,7 @@
 "use strict";
 (function() {
-
-    const electron = require("electron");
     const moment = require("moment");
-    moment.locale(electron.remote.app.getLocale());
+    moment.locale(firebotAppDetails.locale);
 
     angular
         .module("firebotApp")
@@ -259,51 +257,51 @@
                     }
                     for (const role of twitchRoles) {
                         switch (role) {
-                        case "vip":
-                            roles.push({
-                                name: "VIP",
-                                style: {color: '#E175FF'},
-                                rank: 4
-                            });
-                            continue;
-                        case "mod":
-                            roles.push(modRole);
-                            continue;
-                        case "sub":
-                            roles.push({
-                                name: "Subscriber",
-                                style: {color: '#C9CCDB'},
-                                rank: 5
-                            });
-                            continue;
-                        case "broadcaster":
-                            roles.push({
-                                name: "Channel Owner",
-                                style: {color: 'white'},
-                                rank: 0
-                            });
-                            continue;
-                        case "tier1":
-                            roles.push({
-                                name: "Tier 1 Sub",
-                                style: {color: '#d6d7dc'},
-                                rank: 6
-                            });
-                            continue;
-                        case "tier2":
-                            roles.push({
-                                name: "Tier 2 Sub",
-                                style: {color: '#b1c5d4'},
-                                rank: 7
-                            });
-                            continue;
-                        case "tier3":
-                            roles.push({
-                                name: "Tier 3 Sub",
-                                style: {color: '#71879a'},
-                                rank: 8
-                            });
-                            continue;
+                            case "vip":
+                                roles.push({
+                                    name: "VIP",
+                                    style: {color: '#E175FF'},
+                                    rank: 4
+                                });
+                                continue;
+                            case "mod":
+                                roles.push(modRole);
+                                continue;
+                            case "sub":
+                                roles.push({
+                                    name: "Subscriber",
+                                    style: {color: '#C9CCDB'},
+                                    rank: 5
+                                });
+                                continue;
+                            case "broadcaster":
+                                roles.push({
+                                    name: "Channel Owner",
+                                    style: {color: 'white'},
+                                    rank: 0
+                                });
+                                continue;
+                            case "tier1":
+                                roles.push({
+                                    name: "Tier 1 Sub",
+                                    style: {color: '#d6d7dc'},
+                                    rank: 6
+                                });
+                                continue;
+                            case "tier2":
+                                roles.push({
+                                    name: "Tier 2 Sub",
+                                    style: {color: '#b1c5d4'},
+                                    rank: 7
+                                });
+                                continue;
+                            case "tier3":
+                                roles.push({
+                                    name: "Tier 3 Sub",
+                                    style: {color: '#71879a'},
+                                    rank: 8
+                                });
+                                continue;
                         }
                     }
 
@@ -463,9 +461,9 @@
                             utilityService.openGetInputModal(
                                 {
                                     model: valueToEdit,
-                                    label: "Edit " + this.name,
+                                    label: `Edit ${this.name}`,
                                     saveText: "Save",
-                                    inputPlaceholder: "Enter " + this.name.toLowerCase(),
+                                    inputPlaceholder: `Enter ${this.name.toLowerCase()}`,
                                     validationFn: (value) => {
                                         return new Promise(resolve => {
                                             if (typeof value === 'string') {
@@ -489,9 +487,9 @@
                             utilityService.openDateModal(
                                 {
                                     model: valueToEdit,
-                                    label: "Edit " + this.name,
+                                    label: `Edit ${this.name}`,
                                     saveText: "Save",
-                                    inputPlaceholder: "Enter " + this.name.toLowerCase()
+                                    inputPlaceholder: `Enter ${this.name.toLowerCase()}`
                                 },
                                 (editedValue) => {
                                     this.value = this._afterEditFunc(editedValue);
@@ -564,7 +562,7 @@
                         "fa-tv",
                         minsInChannel,
                         value => {
-                            return value < 60 ? 'Less than an hour' : parseInt(value / 60) + " hr(s)";
+                            return value < 60 ? 'Less than an hour' : `${parseInt(value / 60)} hr(s)`;
                         },
                         "minutesInChannel",
                         "number",
@@ -602,7 +600,7 @@
                             "fa-money-bill",
                             $ctrl.viewerDetails.firebotData.currency[currency.id] || 0,
                             value => value,
-                            "currency." + currency.id,
+                            `currency.${currency.id}`,
                             "number",
                             value => {
                                 return value ? parseInt(value) : 0;

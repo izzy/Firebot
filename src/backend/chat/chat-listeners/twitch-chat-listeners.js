@@ -6,6 +6,7 @@ const chatHelpers = require("../chat-helpers");
 const activeUserHandler = require("./active-user-handler");
 const accountAccess = require("../../common/account-access");
 const chatModerationManager = require("../moderation/chat-moderation-manager");
+const chatRolesManager = require("../../roles/chat-roles-manager");
 const twitchEventsHandler = require("../../events/twitch-events");
 const raidMessageChecker = require(".././moderation/raid-message-checker");
 const logger = require("../../logwrapper");
@@ -24,11 +25,14 @@ exports.setupBotChatListeners = (botChatClient) => {
 
 const HIGHLIGHT_MESSAGE_REWARD_ID = "highlight-message";
 
-/** @arg {import('@twurple/chat').ChatClient} streamerChatClient */
-exports.setupChatListeners = (streamerChatClient) => {
+/**
+ * @arg {import('@twurple/chat').ChatClient} streamerChatClient
+ * @arg {import('@twurple/chat').ChatClient} botChatClient
+ */
+exports.setupChatListeners = (streamerChatClient, botChatClient) => {
 
     streamerChatClient.onAnnouncement(async (_channel, _user, announcementInfo, msg) => {
-        const firebotChatMessage = await chatHelpers.buildFirebotChatMessage(msg, msg.message.value);
+        const firebotChatMessage = await chatHelpers.buildFirebotChatMessage(msg, msg.text);
 
         firebotChatMessage.isAnnouncement = true;
         firebotChatMessage.announcementColor = announcementInfo.color ?? "PRIMARY";
@@ -36,7 +40,8 @@ exports.setupChatListeners = (streamerChatClient) => {
         frontendCommunicator.send("twitch:chat:message", firebotChatMessage);
 
         twitchEventsHandler.announcement.triggerAnnouncement(
-            firebotChatMessage.useridname,
+            firebotChatMessage.userIdName,
+            firebotChatMessage.userId,
             firebotChatMessage.username,
             firebotChatMessage.roles,
             firebotChatMessage.rawText
@@ -47,6 +52,12 @@ exports.setupChatListeners = (streamerChatClient) => {
         const firebotChatMessage = await chatHelpers.buildFirebotChatMessage(msg, messageText);
 
         await chatModerationManager.moderateMessage(firebotChatMessage);
+
+        if (firebotChatMessage.isVip === true) {
+            chatRolesManager.addVipToVipList(firebotChatMessage.username);
+        } else {
+            chatRolesManager.removeVipFromVipList(firebotChatMessage.username);
+        }
 
         // send to the frontend
         if (firebotChatMessage.isHighlighted) {
@@ -71,9 +82,15 @@ exports.setupChatListeners = (streamerChatClient) => {
 
         commandHandler.handleChatMessage(firebotChatMessage);
 
-        activeUserHandler.addActiveUser(msg.userInfo, true);
+        await activeUserHandler.addActiveUser(msg.userInfo, true);
 
-        twitchEventsHandler.viewerArrived.triggerViewerArrived(msg.userInfo.displayName, messageText);
+        twitchEventsHandler.viewerArrived.triggerViewerArrived(
+            msg.userInfo.displayName,
+            msg.userInfo.userName,
+            msg.userInfo.userId,
+            messageText,
+            firebotChatMessage
+        );
 
         const { streamer, bot } = accountAccess.getAccounts();
         if (user !== streamer.username && user !== bot.username) {
@@ -82,24 +99,54 @@ exports.setupChatListeners = (streamerChatClient) => {
         }
 
         twitchEventsHandler.chatMessage.triggerChatMessage(firebotChatMessage);
+        if (firebotChatMessage.isFirstChat) {
+            twitchEventsHandler.chatMessage.triggerFirstTimeChat(firebotChatMessage);
+        }
         await raidMessageChecker.sendMessageToCache(firebotChatMessage);
     });
 
-    streamerChatClient.onWhisper(async (_user, messageText, msg) => {
+    const whisperHandler = async (_user, messageText, msg, accountType) => {
         const firebotChatMessage = await chatHelpers.buildFirebotChatMessage(msg, messageText, true);
 
         commandHandler.handleChatMessage(firebotChatMessage);
 
         frontendCommunicator.send("twitch:chat:message", firebotChatMessage);
-    });
+
+        twitchEventsHandler.whisper.triggerWhisper(
+            msg.userInfo.userName,
+            messageText,
+            accountType
+        );
+    };
+
+    streamerChatClient.onWhisper(async (_user, messageText, msg) => whisperHandler(_user, messageText, msg, "streamer"));
+    botChatClient?.onWhisper(async (_user, messageText, msg) => whisperHandler(_user, messageText, msg, "bot"));
 
     streamerChatClient.onAction(async (_channel, _user, messageText, msg) => {
         const firebotChatMessage = await chatHelpers.buildFirebotChatMessage(msg, messageText, false, true);
+
+        if (firebotChatMessage.isVip === true) {
+            chatRolesManager.addVipToVipList(firebotChatMessage.username);
+        } else {
+            chatRolesManager.removeVipFromVipList(firebotChatMessage.username);
+        }
+
         frontendCommunicator.send("twitch:chat:message", firebotChatMessage);
 
-        twitchEventsHandler.chatMessage.triggerChatMessage(firebotChatMessage);
+        await activeUserHandler.addActiveUser(msg.userInfo, true);
 
-        twitchEventsHandler.viewerArrived.triggerViewerArrived(msg.userInfo.displayName, messageText);
+        twitchEventsHandler.chatMessage.triggerChatMessage(firebotChatMessage);
+        if (firebotChatMessage.isFirstChat) {
+            twitchEventsHandler.chatMessage.triggerFirstTimeChat(firebotChatMessage);
+        }
+
+        twitchEventsHandler.viewerArrived.triggerViewerArrived(
+            msg.userInfo.displayName,
+            msg.userInfo.userName,
+            msg.userInfo.userId,
+            messageText,
+            firebotChatMessage
+        );
     });
 
     streamerChatClient.onMessageRemove((_channel, messageId) => {
@@ -107,6 +154,24 @@ exports.setupChatListeners = (streamerChatClient) => {
     });
 
     streamerChatClient.onResub(async (_channel, _user, subInfo, msg) => {
+        try {
+            if (subInfo.originalGiftInfo != null) {
+                twitchEventsHandler.sub.triggerSub(
+                    msg.userInfo.userName,
+                    subInfo.userId,
+                    subInfo.displayName,
+                    subInfo.plan,
+                    subInfo.months || 1,
+                    subInfo.message ?? "",
+                    subInfo.streak || 1,
+                    false,
+                    true
+                );
+            }
+        } catch (error) {
+            logger.error("Failed to parse resub message (multi-month gifted sub)", error);
+        }
+
         try {
             if (subInfo.message != null && subInfo.message.length > 0) {
                 const firebotChatMessage = await chatHelpers.buildFirebotChatMessage(msg, subInfo.message);
@@ -131,6 +196,8 @@ exports.setupChatListeners = (streamerChatClient) => {
     streamerChatClient.onSubGift((_channel, _user, subInfo) => {
         twitchEventsHandler.giftSub.triggerSubGift(
             subInfo.gifterDisplayName ?? "An Anonymous Gifter",
+            subInfo.gifter,
+            subInfo.gifterUserId,
             !subInfo.gifterUserId,
             subInfo.displayName,
             subInfo.plan,
@@ -140,25 +207,22 @@ exports.setupChatListeners = (streamerChatClient) => {
         );
     });
 
-    streamerChatClient.onGiftPaidUpgrade((_channel, _user, subInfo) => {
+    streamerChatClient.onGiftPaidUpgrade((_channel, _user, subInfo, msg) => {
         twitchEventsHandler.giftSub.triggerSubGiftUpgrade(
+            msg.userInfo.userName,
             subInfo.displayName,
+            subInfo.userId,
             subInfo.gifterDisplayName,
             subInfo.plan
         );
     });
 
-    streamerChatClient.onPrimePaidUpgrade((_channel, _user, subInfo) => {
+    streamerChatClient.onPrimePaidUpgrade((_channel, _user, subInfo, msg) => {
         twitchEventsHandler.sub.triggerPrimeUpgrade(
+            msg.userInfo.userName,
             subInfo.displayName,
+            subInfo.userId,
             subInfo.plan
-        );
-    });
-
-    streamerChatClient.onRaid((_channel, _username, raidInfo) => {
-        twitchEventsHandler.raid.triggerRaid(
-            raidInfo.displayName,
-            raidInfo.viewerCount
         );
     });
 };

@@ -1,6 +1,8 @@
 "use strict";
 const logger = require("../../logwrapper");
 const effectRunner = require("../../common/effect-runner");
+const eventManager = require("../../events/EventManager");
+const frontendCommunicator = require("../../common/frontend-communicator");
 
 /**
  * Queue Entry
@@ -14,7 +16,7 @@ const effectRunner = require("../../common/effect-runner");
  * Effect queue class
  */
 class EffectQueue {
-    constructor(id, mode, interval = 0) {
+    constructor(id, mode, interval = 0, active = true) {
         this.id = id;
         this.mode = mode;
         this.interval = interval;
@@ -24,8 +26,15 @@ class EffectQueue {
          */
         this._queue = [];
         this._running = false;
-        this._paused = false;
+        this._paused = !active;
         this.canceled = false;
+    }
+
+    sendQueueLengthUpdate(lengthOverride = null) {
+        frontendCommunicator.send("updateQueueLength", {
+            id: this.id,
+            length: lengthOverride ?? this._queue.length
+        });
     }
 
     runQueue() {
@@ -41,6 +50,8 @@ class EffectQueue {
             }
 
             logger.debug(`Running next effects for queue ${this.id}. Mode=${this.mode}, Interval?=${this.interval}, Remaining queue length=${this._queue.length}`);
+
+            this.sendQueueLengthUpdate();
 
             if (this.mode === "interval") {
                 effectRunner.runEffects(runEffectsContext)
@@ -94,6 +105,8 @@ class EffectQueue {
 
         logger.debug(`Added more effects to queue ${this.id}. Current length=${this._queue.length}`);
 
+        this.sendQueueLengthUpdate();
+
         this.processEffectQueue();
     }
 
@@ -107,6 +120,11 @@ class EffectQueue {
                 this.runQueue().then(() => {
                     logger.debug(`Queue ${this.id} is ${this._paused && this._queue.length > 0 ? "paused" : "cleared"}... going idle.`);
                     this._running = false;
+                    if (this._queue.length === 0) {
+                        eventManager.triggerEvent("firebot", "effect-queue-cleared", {
+                            effectQueueId: this.id
+                        });
+                    }
                 });
             }
         }
@@ -122,14 +140,6 @@ class EffectQueue {
         this._paused = false;
         this.processEffectQueue();
     }
-
-    toggleQueue() {
-        if (this._paused) {
-            this.resumeQueue();
-        } else {
-            this.pauseQueue();
-        }
-    }
 }
 
 /**
@@ -144,7 +154,7 @@ function addEffectsToQueue(queueConfig, runEffectsContext, duration, priority) {
     let queue = queues[queueConfig.id];
     if (queue == null) {
         logger.debug(`Creating queue ${queueConfig.id}...`);
-        queue = new EffectQueue(queueConfig.id, queueConfig.mode, queueConfig.interval);
+        queue = new EffectQueue(queueConfig.id, queueConfig.mode, queueConfig.interval, queueConfig.active);
         queues[queueConfig.id] = queue;
     }
 
@@ -159,27 +169,11 @@ function updateQueueConfig(queueConfig) {
     if (queue != null) {
         queue.mode = queueConfig.mode;
         queue.interval = queueConfig.interval;
-    }
-}
-
-function pauseQueue(queueId) {
-    const queue = queues[queueId];
-    if (queue != null) {
-        queue.pauseQueue();
-    }
-}
-
-function resumeQueue(queueId) {
-    const queue = queues[queueId];
-    if (queue != null) {
-        queue.resumeQueue();
-    }
-}
-
-function toggleQueue(queueId) {
-    const queue = queues[queueId];
-    if (queue != null) {
-        queue.toggleQueue();
+        if (queueConfig.active) {
+            queue.resumeQueue();
+        } else {
+            queue.pauseQueue();
+        }
     }
 }
 
@@ -192,8 +186,17 @@ function removeQueue(queueId) {
     if (queue != null) {
         logger.debug(`Removing queue ${queue.id}`);
         queue.canceled = true;
+        queue.sendQueueLengthUpdate(0);
         delete queues[queueId];
     }
+}
+
+function getQueue(queueId) {
+    const queue = queues[queueId];
+    if (queue == null) {
+        return [];
+    }
+    return queue._queue;
 }
 
 function clearAllQueues() {
@@ -201,9 +204,7 @@ function clearAllQueues() {
 }
 
 exports.addEffectsToQueue = addEffectsToQueue;
+exports.getQueue = getQueue;
 exports.updateQueueConfig = updateQueueConfig;
-exports.pauseQueue = pauseQueue;
-exports.resumeQueue = resumeQueue;
-exports.toggleQueue = toggleQueue;
 exports.removeQueue = removeQueue;
 exports.clearAllQueues = clearAllQueues;

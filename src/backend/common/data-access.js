@@ -2,9 +2,13 @@
 
 const electron = require("electron");
 const path = require("path");
-const fs = require("fs-extra");
+const fs = require("fs");
 const { JsonDB } = require("node-json-db");
-const app = (electron.app || electron.remote.app);
+
+let app = electron.app;
+if (app == null && firebotAppDetails != null) {
+    app = firebotAppDetails;
+}
 const isDev = !app.isPackaged;
 
 // This is the path to folder the app is currently living in. IE: C:\Users\<user>\AppData\Local\Firebot\app-4.0.0\
@@ -20,10 +24,10 @@ const getWorkingDirectoryPath = function() {
 // app.getPath('userData') will return a string of the user's app data directory path.
 // This is the path to the user data folder. IE: C:\Users\<user>\AppData\Roaming\Firebot\
 // This stays the same after every update.
-const appDataPath = (electron.app || electron.remote.app).getPath("appData");
+const appDataPath = app.getPath("appData");
 
-const rootUserDataPath = appDataPath + path.sep + "Firebot";
-const userDataPath = rootUserDataPath + path.sep + "v5";
+const rootUserDataPath = `${appDataPath + path.sep}Firebot`;
+const userDataPath = `${rootUserDataPath + path.sep}v5`;
 
 const tmpDirectoryPath = path.join(rootUserDataPath, "tmp");
 
@@ -40,17 +44,17 @@ const getPathInTmpDir = function(filePath) {
 };
 
 const deletePathInTmpDir = function(filePath) {
-    fs.unlink(path.join(tmpDirectoryPath, filePath));
+    fs.unlinkSync(path.join(tmpDirectoryPath, filePath));
 };
 
 const deletePathInUserData = function(filePath) {
-    fs.unlink(path.join(userDataPath, filePath));
+    fs.unlinkSync(path.join(userDataPath, filePath));
 };
 
-const deleteFolderRecursive = function(path) {
-    if (fs.existsSync(path)) {
-        fs.readdirSync(path).forEach(function(file) {
-            const curPath = path + "/" + file;
+const deleteFolderRecursive = function(pathname) {
+    if (fs.existsSync(pathname)) {
+        fs.readdirSync(pathname).forEach(function(file) {
+            const curPath = path.join(pathname, file);
             if (fs.statSync(curPath).isDirectory()) {
                 // recurse
                 deleteFolderRecursive(curPath);
@@ -59,7 +63,7 @@ const deleteFolderRecursive = function(path) {
                 fs.unlinkSync(curPath);
             }
         });
-        fs.rmdirSync(path);
+        fs.rmdirSync(pathname);
     }
 };
 
@@ -116,19 +120,19 @@ const makeDirInUserDataSync = function(filePath) {
         return true;
     } catch (err) {
         const logger = require("../logwrapper");
-        logger.error(`Error creating ${filePath}: ` + err);
+        logger.error(`Error creating ${filePath}: ${err}`);
         return false;
     }
 };
 
 const writeFileInWorkingDir = function(filePath, data, callback) {
     const joinedPath = path.join(workingDirectoryPath, filePath);
-    fs.writeFile(joinedPath, data, "utf8", callback);
+    fs.writeFile(joinedPath, data, { encoding: "utf8" }, callback);
 };
 
 const writeFileInUserData = function(filePath, data, callback) {
     const joinedPath = path.join(userDataPath, filePath);
-    fs.writeFile(joinedPath, data, "utf8", callback);
+    fs.writeFile(joinedPath, data, { encoding: "utf8" }, callback);
 };
 
 const copyDefaultConfigToUserData = function(
@@ -136,10 +140,10 @@ const copyDefaultConfigToUserData = function(
     userDataDestination
 ) {
     const source = getPathInWorkingDir(
-        "/resources/default-configs/" + configFileName
+        `/resources/default-configs/${configFileName}`
     );
     const destination = getPathInUserData(
-        userDataDestination + "/" + configFileName
+        `${userDataDestination}/${configFileName}`
     );
     fs.writeFileSync(destination, fs.readFileSync(source));
 };

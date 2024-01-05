@@ -20,6 +20,7 @@
             error: {},
             updateError: {},
             updateDownloaded: {},
+            installingUpdate: {},
             showEvents: {},
             playSound: {},
             showImage: {},
@@ -61,6 +62,7 @@
             ERROR: "error",
             UPDATE_ERROR: "updateError",
             UPDATE_DOWNLOADED: "updateDownloaded",
+            INSTALLING_UPDATE: "installingUpdate",
             API_BUTTON: "apiButton",
             SHOW_EVENTS: "showEvents",
             PLAY_SOUND: "playSound",
@@ -132,31 +134,31 @@
             const publishEvent = request.publishEvent === true;
 
             switch (listener.type) {
-            case ListenerType.VIDEO_FILE:
-            case ListenerType.IMAGE_FILE:
-            case ListenerType.SOUND_FILE:
-            case ListenerType.IMPORT_FOLDER:
-            case ListenerType.IMPORT_BACKUP_ZIP:
-            case ListenerType.ANY_FILE:
-                registeredListeners.filePath[uuid] = listener;
-                if (publishEvent) {
-                    if (listener.type === ListenerType.IMAGE_FILE) {
-                        ipcRenderer.send("getImagePath", uuid);
-                    } else if (listener.type === ListenerType.SOUND_FILE) {
-                        ipcRenderer.send("getSoundPath", uuid);
-                    } else if (listener.type === ListenerType.VIDEO_FILE) {
-                        ipcRenderer.send("getVideoPath", uuid);
-                    } else if (listener.type === ListenerType.IMPORT_FOLDER) {
-                        ipcRenderer.send("getImportFolderPath", uuid);
-                    } else if (listener.type === ListenerType.IMPORT_BACKUP_ZIP) {
-                        ipcRenderer.send("getBackupZipPath", uuid);
-                    } else if (listener.type === ListenerType.ANY_FILE) {
-                        ipcRenderer.send("getAnyFilePath", request.data);
+                case ListenerType.VIDEO_FILE:
+                case ListenerType.IMAGE_FILE:
+                case ListenerType.SOUND_FILE:
+                case ListenerType.IMPORT_FOLDER:
+                case ListenerType.IMPORT_BACKUP_ZIP:
+                case ListenerType.ANY_FILE:
+                    registeredListeners.filePath[uuid] = listener;
+                    if (publishEvent) {
+                        if (listener.type === ListenerType.IMAGE_FILE) {
+                            ipcRenderer.send("getImagePath", uuid);
+                        } else if (listener.type === ListenerType.SOUND_FILE) {
+                            ipcRenderer.send("getSoundPath", uuid);
+                        } else if (listener.type === ListenerType.VIDEO_FILE) {
+                            ipcRenderer.send("getVideoPath", uuid);
+                        } else if (listener.type === ListenerType.IMPORT_FOLDER) {
+                            ipcRenderer.send("getImportFolderPath", uuid);
+                        } else if (listener.type === ListenerType.IMPORT_BACKUP_ZIP) {
+                            ipcRenderer.send("getBackupZipPath", uuid);
+                        } else if (listener.type === ListenerType.ANY_FILE) {
+                            ipcRenderer.send("getAnyFilePath", request.data);
+                        }
                     }
-                }
-                break;
-            default:
-                registeredListeners[listener.type][uuid] = listener;
+                    break;
+                default:
+                    registeredListeners[listener.type][uuid] = listener;
             }
 
             return uuid;
@@ -164,16 +166,16 @@
 
         service.unregisterListener = function(type, uuid) {
             switch (type) {
-            case ListenerType.VIDEO_FILE:
-            case ListenerType.IMAGE_FILE:
-            case ListenerType.SOUND_FILE:
-            case ListenerType.IMPORT_FOLDER:
-            case ListenerType.ANY_FILE:
-            case ListenerType.IMPORT_BACKUP_ZIP:
-                delete registeredListeners.filePath[uuid];
-                break;
-            default:
-                delete registeredListeners[type][uuid];
+                case ListenerType.VIDEO_FILE:
+                case ListenerType.IMAGE_FILE:
+                case ListenerType.SOUND_FILE:
+                case ListenerType.IMPORT_FOLDER:
+                case ListenerType.ANY_FILE:
+                case ListenerType.IMPORT_BACKUP_ZIP:
+                    delete registeredListeners.filePath[uuid];
+                    break;
+                default:
+                    delete registeredListeners[type][uuid];
             }
         };
 
@@ -182,6 +184,7 @@
     */
         const EventType = {
             DOWNLOAD_UPDATE: "downloadUpdate",
+            INSTALL_UPDATE: "installUpdate",
             OPEN_ROOT: "openRootFolder",
             GET_IMAGE: "getImagePath",
             GET_SOUND: "getSoundPath",
@@ -325,6 +328,13 @@
      */
         ipcRenderer.on("updateDownloaded", function() {
             _.forEach(registeredListeners.updateDownloaded, listener => {
+                runListener(listener);
+            });
+        });
+
+        // Installing update listener
+        ipcRenderer.on(ListenerType.INSTALLING_UPDATE, function () {
+            _.forEach(registeredListeners[ListenerType.INSTALLING_UPDATE], listener => {
                 runListener(listener);
             });
         });

@@ -8,8 +8,12 @@ const { EffectCategory, EffectDependency } = require('../../../shared/effect-con
 const logger = require("../../logwrapper");
 const accountAccess = require("../../common/account-access");
 const util = require("../../utility");
-const fs = require('fs-extra');
+const fs = require('fs/promises');
 const path = require("path");
+const frontendCommunicator = require('../../common/frontend-communicator');
+const { wait } = require("../../utility");
+const { parseYoutubeId } = require("../../../shared/youtube-url-parser");
+const uuid = require("uuid");
 
 /**
  * The Play Video effect
@@ -24,7 +28,7 @@ const playVideo = {
         description: "Plays a local, Youtube, or Twitch video in the overlay.",
         icon: "fad fa-video",
         categories: [EffectCategory.COMMON, EffectCategory.OVERLAY, EffectCategory.TWITCH],
-        dependencies: [EffectDependency.OVERLAY]
+        dependencies: []
     },
     /**
      * Global settings that will be available in the Settings tab
@@ -366,11 +370,11 @@ const playVideo = {
             /**@type {import('@twurple/api').HelixClip} */
             let clip;
             if (effect.videoType === "Twitch Clip") {
-                clipId = effect.twitchClipUrl.replace("https://clips.twitch.tv/", "");
+                clipId = effect.twitchClipUrl.split("/").pop();
                 try {
                     clip = await client.clips.getClipById(clipId);
                 } catch (error) {
-                    logger.error("Unable to find clip by id: " + clipId, error);
+                    logger.error(`Unable to find clip by id: ${clipId}`, error);
                     return true;
                 }
             } else if (effect.videoType === "Random Twitch Clip") {
@@ -395,12 +399,12 @@ const playVideo = {
 
                     clipId = clip.id;
                 } catch (error) {
-                    logger.error("Unable to find clip random clip for: " + username, error);
+                    logger.error(`Unable to find clip random clip for: ${username}`, error);
                     return true;
                 }
             }
 
-            const clipVideoUrl = clip.thumbnailUrl.split("-preview-")[0] + ".mp4";
+            const clipVideoUrl = `${clip.thumbnailUrl.split("-preview-")[0]}.mp4`;
             const clipDuration = clip.duration;
             const volume = parseInt(effect.volume) / 10;
 
@@ -439,54 +443,71 @@ const playVideo = {
         }
 
         let resourceToken;
+        let duration;
+
         if (effect.videoType === "YouTube Video") {
-            resourceToken = resourceTokenManager.storeResourcePath(data.filepath, effect.length);
-        } else {
-            const durationToken = resourceTokenManager.storeResourcePath(data.filepath, 5);
+            const youtubeData = parseYoutubeId(data.youtubeId);
+            data.youtubeId = youtubeData.id;
 
-            const durationPromise = new Promise(async (resolve, reject) => {
-                const listener = (event) => {
-                    try {
-                        if (event.name === "video-duration" && event.data.resourceToken === durationToken) {
-                            webServer.removeListener("overlay-event", listener);
-                            resolve(event.data.duration);
-                        }
-                    } catch (err) {
-                        logger.error("Error while trying to process overlay-event for getVideoDuration: ", err);
-                        reject(err);
-                    }
-                };
-                webServer.on("overlay-event", listener);
-            });
+            if (data.videoStarttime == null || data.videoStarttime === "" || data.videoStarttime === 0) {
+                data.videoStarttime = youtubeData.startTime;
+            }
 
-            webServer.sendToOverlay("getVideoDuration", {
-                resourceToken: durationToken,
-                overlayInstance: data.overlayInstance
-            });
+            resourceToken = uuid();
 
-            const duration = await durationPromise;
-            resourceToken = resourceTokenManager.storeResourcePath(data.filepath, duration + 5);
-            logger.info(`Retrieved duration for video: ${duration}`);
+        } else if (effect.videoType === "Local Video" || effect.videoType === "Random From Folder") {
+            const result = await frontendCommunicator.fireEventAsync("getVideoDuration", data.filepath);
+            if (!isNaN(result)) {
+                duration = result;
+            }
+            resourceToken = resourceTokenManager.storeResourcePath(data.filepath, duration);
         }
-
+        if ((data.videoDuration == null || data.videoDuration === "" || data.videoDuration === 0) && duration != null) {
+            data.videoDuration = duration;
+        }
         data.resourceToken = resourceToken;
+
+        let waitPromise;
+
+        if (effect.wait) {
+            if (effect.videoType === "YouTube Video") {
+
+                let overlayTimeout;
+                waitPromise = new Promise((resolve, reject) => {
+                    function callbackAvailable({name}) {
+                        if (name === `play-video:callback:available:${resourceToken}`) {
+                            clearTimeout(overlayTimeout);
+                            webServer.off("overlay-event", callbackAvailable);
+                        }
+                    }
+
+                    function callbackDuration({name, data}) {
+                        if (name === `play-video:callback:duration:${resourceToken}`) {
+                            webServer.off("overlay-event", callbackDuration);
+                            wait(data.duration).then(resolve);
+                        }
+                    }
+
+                    overlayTimeout = setTimeout(() => {
+                        webServer.off("overlay-event", callbackAvailable);
+                        webServer.off("overlay-event", callbackDuration);
+                        reject();
+                    }, 2500);
+                    webServer.on("overlay-event", callbackAvailable);
+                    webServer.on("overlay-event", callbackDuration);
+                });
+            } else {
+                waitPromise = wait(data.videoDuration * 1000);
+            }
+        }
 
         webServer.sendToOverlay("video", data);
         if (effect.wait) {
-            await new Promise(async (resolve, reject) => {
-                const listener = (event) => {
-                    try {
-                        if (event.name === "video-end" && event.data.resourceToken === resourceToken) {
-                            webServer.removeListener("overlay-event", listener);
-                            resolve();
-                        }
-                    } catch (err) {
-                        logger.error("Error while trying to process overlay-event for play-video: ", err);
-                        reject(err);
-                    }
-                };
-                webServer.on("overlay-event", listener);
-            });
+            try {
+                await waitPromise;
+            } catch (error) {
+                return false;
+            }
         }
         return true;
     },
@@ -507,6 +528,11 @@ const playVideo = {
                     startedVidCache = {}; // eslint-disable-line no-undef
                 }
 
+                if (event.videoType === "YouTube Video") {
+                    // eslint-disable-next-line no-undef
+                    sendWebsocketEvent(`play-video:callback:available:${event.resourceToken}`);
+                }
+
                 function animateVideoExit(idString, animation, duration, inbetweenAnimation) {
                     if (inbetweenAnimation) {
                         $(idString).find(".inner-position").css("animation-duration", "");
@@ -514,7 +540,7 @@ const playVideo = {
                         $(idString).find(".inner-position").css("animation-iteration-count", "");
                         $(idString)
                             .find(".inner-position")
-                            .removeClass("animated " + inbetweenAnimation);
+                            .removeClass(`animated ${inbetweenAnimation}`);
                     }
 
                     $(idString)
@@ -526,13 +552,12 @@ const playVideo = {
                 function millisecondsFromString(time) {
                     if (time === undefined) { // Default delay seems to be a second
                         return 1000;
-                    }
-                    else if (time.includes('ms')) {
+                    } else if (time.includes('ms')) {
                         return parseFloat(time.match(/[\d.]+/));
                     }
-                    else { // Time is in seconds
-                        return parseFloat(time.match(/[\d.]+/)) * 1000;
-                    }
+                    // Time is in seconds
+                    return parseFloat(time.match(/[\d.]+/)) * 1000;
+
                 }
 
                 // Load youtube iframe api onto page.
@@ -544,18 +569,18 @@ const playVideo = {
                 const data = event;
 
                 const videoType = data.videoType;
-                const filepath = data.filepath;
+                const filepath = data.filepath ?? "";
                 let fileExt = filepath.split(".").pop();
                 if (fileExt === "ogv") {
                     fileExt = "ogg";
                 }
-                let youtubeId = data.youtubeId;
+                const youtubeId = data.youtubeId;
                 const videoDuration =
                     data.videoDuration != null && data.videoDuration !== ""
                         ? parseFloat(data.videoDuration) * 1000
                         : null;
                 let videoVolume = data.videoVolume;
-                let videoStarttime = data.videoStarttime || 0;
+                const videoStarttime = data.videoStarttime || 0;
                 const loop = data.loop;
 
                 const token = encodeURIComponent(data.resourceToken);
@@ -637,9 +662,6 @@ const playVideo = {
                         const exitVideo = () => {
                             delete startedVidCache[this.id]; // eslint-disable-line no-undef
                             animateVideoExit(`#${wrapperId}`, exitAnimation, exitDuration, inbetweenAnimation);
-                            setTimeout(function(){
-                                sendWebsocketEvent("video-end", {resourceToken: token}); // eslint-disable-line no-undef
-                            }, millisecondsFromString(exitDuration));
                         };
 
                         // Remove div after X time.
@@ -668,29 +690,6 @@ const playVideo = {
                     const wrappedHtml = getPositionWrappedHTML(wrapperId, positionData, youtubeElement); // eslint-disable-line no-undef
 
                     $(".wrapper").append(wrappedHtml);
-
-                    try {
-                        const url = new URL(youtubeId);
-                        if (url.hostname.includes("www.youtube.com")) {
-                            for (const [key, value] of url.searchParams) {
-                                if (key === "v") {
-                                    youtubeId = value;
-                                } else if (key === "t") {
-                                    videoStarttime = value;
-                                }
-                            }
-                        }
-                        if (url.hostname.includes("youtu.be")) {
-                            youtubeId = url.pathname.replace("/", "");
-                            for (const [key, value] of url.searchParams) {
-                                if (key === "t") {
-                                    videoStarttime = value;
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        //failed to convert url
-                    }
 
                     // Add iframe.
 
@@ -729,17 +728,26 @@ const playVideo = {
                                 event.target.setVolume(parseInt(videoVolume) * 10);
                                 event.target.playVideo();
 
+                                if (event.target.getDuration() === 0) { // Error state
+                                    // eslint-disable-next-line no-undef
+                                    sendWebsocketEvent(`play-video:callback:duration:${data.resourceToken}`, {duration: 0});
+                                } else if (videoDuration) {
+                                    // eslint-disable-next-line no-undef
+                                    sendWebsocketEvent(`play-video:callback:duration:${data.resourceToken}`, {duration: videoDuration});
+                                } else {
+                                    // eslint-disable-next-line no-undef
+                                    sendWebsocketEvent(`play-video:callback:duration:${data.resourceToken}`, {duration: (event.target.getDuration() - parseInt(videoStarttime)) * 1000});
+                                }
+
                                 $(`#${ytPlayerId}`).show();
                             },
                             onError: (event) => {
                                 console.log(event);
+                                animateVideoExit(`#${wrapperId}`, exitAnimation, exitDuration, inbetweenAnimation);
                             },
                             onStateChange: (event) => {
                                 if (event.data === 0 && !videoDuration) {
                                     animateVideoExit(`#${wrapperId}`, exitAnimation, exitDuration, inbetweenAnimation);
-                                    setTimeout(function(){
-                                        sendWebsocketEvent("video-end", {resourceToken: token}); // eslint-disable-line no-undef
-                                    }, millisecondsFromString(exitDuration));
                                 }
                             }
                         }
@@ -757,9 +765,6 @@ const playVideo = {
                     if (videoDuration) {
                         setTimeout(function () {
                             animateVideoExit(`#${wrapperId}`, exitAnimation, exitDuration, inbetweenAnimation);
-                            setTimeout(function(){
-                                sendWebsocketEvent("video-end", {resourceToken: token}); // eslint-disable-line no-undef
-                            }, millisecondsFromString(exitDuration));
                         }, videoDuration);
                     }
                 }

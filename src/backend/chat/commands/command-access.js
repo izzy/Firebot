@@ -20,7 +20,7 @@ function saveSystemCommandOverride(command) {
     const id = command.id.replace("/", "");
 
     try {
-        commandDb.push("/systemCommandOverrides/" + id, command);
+        commandDb.push(`/systemCommandOverrides/${id}`, command);
     } catch (err) {} //eslint-disable-line no-empty
 }
 
@@ -30,7 +30,7 @@ function removeSystemCommandOverride(id) {
     // remove forward slashes just in case
     id = id.replace("/", "");
     try {
-        commandDb.delete("/systemCommandOverrides/" + id);
+        commandDb.delete(`/systemCommandOverrides/${id}`);
     } catch (err) {} //eslint-disable-line no-empty
 }
 
@@ -49,11 +49,8 @@ function refreshCommandCache(retry = 1) {
             try {
                 cmdData = commandsDb.getData("/");
             } catch (err) {
-                logger.info(
-                    "Command cache update failed. Retrying. (Try " + retry + "/3)"
-                );
-                retry = retry + 1;
-                logger.error("error getting command data", err);
+                logger.info(`Command cache update failed. Retrying. (Try ${retry}/3)`);
+                retry += 1;
                 refreshCommandCache(retry);
                 return;
             }
@@ -72,11 +69,9 @@ function refreshCommandCache(retry = 1) {
             }
 
             logger.info("Updated Command cache.");
+
         } else {
-            renderWindow.webContents.send(
-                "error",
-                "Could not sync up command cache. Reconnect to try resyncing."
-            );
+            logger.error("Could not sync up command cache. Reconnect to try resyncing.");
         }
     }
 }
@@ -98,12 +93,12 @@ function saveCustomCommand(command) {
     }
 
     try {
-        commandDb.push("/customCommands/" + command.id, command);
+        commandDb.push(`/customCommands/${command.id}`, command);
     } catch (err) {} //eslint-disable-line no-empty
 }
 
 function saveImportedCustomCommand(command) {
-    logger.debug("Saving imported command: " + command.trigger);
+    logger.debug(`Saving imported command: ${command.trigger}`);
 
     if (command.id == null || command.id === "") {
         command.createdBy = "Imported";
@@ -122,9 +117,9 @@ function deleteCustomCommand(commandId) {
     }
 
     try {
-        commandDb.delete("/customCommands/" + commandId);
+        commandDb.delete(`/customCommands/${commandId}`);
     } catch (err) {
-        logger.warn("error when deleting command", err);
+        logger.warn("error when deleting command", err.message);
     }
 }
 

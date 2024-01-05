@@ -2,8 +2,6 @@
 (function() {
     // This contains utility functions
     // Just inject "utilityService" into any controller that you want access to these
-    const electron = require("electron");
-
     const _ = require("underscore")._;
 
     const dataAccess = require("../../backend/common/data-access.js");
@@ -33,6 +31,18 @@
                         integrationId: data.integrationId,
                         accountId: model
                     });
+                });
+            });
+
+            backendCommunicator.on("showViewerCard", (userId) => {
+                service.showModal({
+                    component: "viewerDetailsModal",
+                    backdrop: true,
+                    resolveObj: {
+                        userId: () => userId
+                    },
+                    closeCallback: () => {},
+                    dismissCallback: () => {}
                 });
             });
 
@@ -125,7 +135,7 @@
             };
 
             service.showModal = function(showModalContext) {
-                // We dont want to do anything if there's no context
+                // We don't want to do anything if there's no context
                 if (showModalContext == null) {
                     logger.warn("showModal() was called but no context was provided!");
                     return;
@@ -140,7 +150,7 @@
                 let dismissCallback = showModalContext.dismissCallback;
                 const windowClass = showModalContext.windowClass ? showModalContext.windowClass : "";
 
-                const modalId = "modal" + _.uniqueId().toString();
+                const modalId = `modal${_.uniqueId().toString()}`;
                 resolveObj.modalId = () => {
                     return modalId;
                 };
@@ -152,7 +162,7 @@
                     size: showModalContext.size,
                     keyboard: showModalContext.keyboard ? showModalContext.keyboard : true,
                     backdrop: showModalContext.backdrop ? showModalContext.backdrop : 'static',
-                    windowClass: windowClass + " " + modalId + " animated fadeIn fastest fb-transition draggablemodal",
+                    windowClass: `${windowClass} ${modalId} animated fadeIn fastest fb-transition draggablemodal`,
                     animation: true
                 };
 
@@ -175,7 +185,7 @@
                 }
 
                 modalInstance.rendered.then(() => {
-                    $("." + modalId).removeClass("animated fadeIn fastest");
+                    $(`.${modalId}`).removeClass("animated fadeIn fastest");
                 });
 
                 // Handle when the modal is exited
@@ -288,10 +298,10 @@
                         $scope.usingOverlayInstances = settingsService.useOverlayInstances();
 
                         $scope.broadcastingSoftwares = [
-                            "OBS/Streamlabs Desktop", "XSplit", "Direct Link/2 PC Setup"
+                            "Local", "Direct Link/2 PC Setup"
                         ];
 
-                        $scope.selectedBroadcastingSoftware = "OBS/Streamlabs Desktop";
+                        $scope.selectedBroadcastingSoftware = "Local";
 
                         $scope.updateSelectedBroadcastingSoftware = (type) => {
                             $scope.selectedBroadcastingSoftware = type;
@@ -304,15 +314,15 @@
 
                             const port = settingsService.getWebServerPort();
 
+                            const params = {};
                             if ($scope.selectedBroadcastingSoftware === "Direct Link/2 PC Setup") {
                                 overlayPath = `http://localhost:${port}/overlay`;
-                            }
 
-                            const params = {};
-                            if ($scope.selectedBroadcastingSoftware !== "Direct Link/2 PC Setup") {
+                            } else {
                                 if (port !== 7472 && !isNaN(port)) {
                                     params["port"] = settingsService.getWebServerPort();
                                 }
+                                overlayPath = `file:///${overlayPath.replace(/^\//g, "")}`;
                             }
 
 
@@ -332,10 +342,6 @@
 
                                 paramCount++;
                             });
-
-                            if ($scope.selectedBroadcastingSoftware === "XSplit") {
-                                overlayPath = "file:///" + overlayPath;
-                            }
 
                             $scope.overlayPath = overlayPath;
                         };
@@ -399,7 +405,7 @@
                     templateUrl: "updatedModal.html",
                     // This is the controller to be used for the modal.
                     controllerFunc: ($scope, $uibModalInstance) => {
-                        const appVersion = electron.remote.app.getVersion();
+                        const appVersion = firebotAppDetails.version;
 
                         $scope.appVersion = `v${appVersion}`;
 
@@ -482,7 +488,8 @@
                         $scope,
                         $uibModalInstance,
                         $timeout,
-                        listenerService
+                        listenerService,
+                        updatesService
                     ) => {
                         $scope.downloadHasError = false;
                         $scope.errorMessage = "";
@@ -508,8 +515,23 @@
                         listenerService.registerListener(
                             updateDownloadedListenerRequest,
                             () => {
-                                // the autoupdater has downloaded the update and restart shortly
+                                // the autoupdater has downloaded the update
                                 $scope.downloadComplete = true;
+                                updatesService.updateIsDownloaded = true;
+                            }
+                        );
+
+                        // Install update listener
+                        const installUpdateListenerRequest = {
+                            type: listenerService.ListenerType.INSTALLING_UPDATE,
+                            runOnce: true
+                        };
+                        listenerService.registerListener(
+                            installUpdateListenerRequest,
+                            () => {
+                                // the autoupdater is installing the update
+                                $scope.downloadComplete = true;
+                                $scope.installing = true;
                             }
                         );
 
@@ -523,6 +545,10 @@
                   "Download is taking longer than normal. There may have been an error. You can keep waiting or close this and try again later.";
                             }
                         }, 180 * 1000);
+
+                        $scope.installUpdate = function() {
+                            updatesService.installUpdate();
+                        };
 
                         $scope.dismiss = function() {
                             $uibModalInstance.dismiss("cancel");
@@ -653,7 +679,7 @@
                                     }
                                 },
                                 {
-                                    html: `<a href ><i class="fal fa-copy" style="margin-right: 10px;" aria-hidden="true"></i> Copy</a>`,
+                                    html: `<a href ><span class="iconify" data-icon="mdi:content-copy" style="margin-right: 10px;" aria-hidden="true"></span> Copy</a>`,
                                     click: function () {
                                         $scope.copy();
                                     }
@@ -688,7 +714,7 @@
                                     ]
                                 },
                                 {
-                                    html: `<a href ><i class="fal fa-paste" style="margin-right: 10px;" aria-hidden="true"></i> Paste</a>`,
+                                    html: `<a href ><span class="iconify" data-icon="mdi:content-paste" style="margin-right: 10px;" aria-hidden="true"></span> Paste</a>`,
                                     enabled: $scope.hasCopiedEffect(),
                                     click: function () {
                                         $scope.paste();
@@ -732,7 +758,7 @@
 
                         utilityService.addSlidingModal(
                             $uibModalInstance.rendered.then(() => {
-                                const modalElement = $("." + modalId).children();
+                                const modalElement = $(`.${modalId}`).children();
                                 return {
                                     element: modalElement,
                                     name:
@@ -835,7 +861,7 @@
                                     if (firstError.varname) {
                                         errorDetails.push({
                                             title: "Variable",
-                                            message: "$" + firstError.varname
+                                            message: `$${firstError.varname}`
                                         });
                                     }
 
@@ -856,7 +882,7 @@
                                     if (firstError.character) {
                                         errorDetails.push({
                                             title: "Character",
-                                            message: "\"" + firstError.character + "\""
+                                            message: `"${firstError.character}"`
                                         });
                                     }
 
@@ -870,7 +896,7 @@
                                     if (firstError.rawText) {
                                         errorDetails.push({
                                             title: "Raw Text",
-                                            message: "\"" + firstError.rawText + "\""
+                                            message: `"${firstError.rawText}"`
                                         });
                                     }
 

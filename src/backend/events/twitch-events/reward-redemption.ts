@@ -36,6 +36,8 @@ export function handleRewardRedemption(
     setTimeout(() => {
         const redemptionMeta = {
             username: userDisplayName,
+            userIdName: userName,
+            userId: userId,
             messageText,
             redemptionId,
             rewardId,
@@ -48,4 +50,4 @@ export function handleRewardRedemption(
         rewardManager.triggerChannelReward(rewardId, redemptionMeta);
         eventManager.triggerEvent("twitch", "channel-reward-redemption", redemptionMeta);
     }, 100);
-};
+}

@@ -2,6 +2,7 @@ import eventManager from "../../events/EventManager";
 
 export function triggerSub(
     userName: string,
+    userId: string,
     userDisplayName: string,
     subPlan: string,
     totalMonths: number,
@@ -13,6 +14,7 @@ export function triggerSub(
     eventManager.triggerEvent("twitch", "sub", {
         userIdName: userName,
         username: userDisplayName,
+        userId,
         subPlan,
         totalMonths,
         subMessage,
@@ -20,14 +22,18 @@ export function triggerSub(
         isPrime,
         isResub
     });
-};
+}
 
 export function triggerPrimeUpgrade(
+    username: string,
     userDisplayName: string,
+    userId: string,
     subPlan: string
  ): void {
     eventManager.triggerEvent("twitch", "prime-sub-upgraded", {
         username: userDisplayName,
+        userIdName: username,
+        userId,
         subPlan
     });
-};
+}

@@ -1,11 +1,18 @@
+import { FirebotChatMessage } from "../../../types/chat";
 import eventManager from "../../events/EventManager";
 
 export function triggerViewerArrived(
     userDisplayName: string,
-    messageText: string
+    userName: string,
+    userId: string,
+    messageText: string,
+    chatMessage: FirebotChatMessage
 ) {
     eventManager.triggerEvent("twitch", "viewer-arrived", {
         username: userDisplayName,
-        messageText
+        userIdName: userName,
+        userId,
+        messageText,
+        chatMessage
     });
 }

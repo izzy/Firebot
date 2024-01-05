@@ -32,6 +32,20 @@
                 }
             });
 
+            backendCommunicator.on("updateQueueLength", queue => {
+                const index = service.effectQueues.findIndex(eq => eq.id === queue.id);
+                if (service.effectQueues[index] != null) {
+                    service.effectQueues[index].length = queue.length;
+                }
+            });
+
+            backendCommunicator.on("updateQueueStatus", queue => {
+                const index = service.effectQueues.findIndex(eq => eq.id === queue.id);
+                if (service.effectQueues[index] != null) {
+                    service.effectQueues[index].active = queue.active;
+                }
+            });
+
             service.queueModes = [
                 {
                     id: "custom",
@@ -43,7 +57,7 @@
                     id: "auto",
                     display: "Sequential",
                     description: "Runs effect list in the queue sequentially. Priority items will be added before non-priority. Optional delay defaults to 0s.",
-                    iconClass: "fa-arrow-down-1-9"
+                    iconClass: "fa-sort-numeric-down"
                 },
                 {
                     id: "interval",
@@ -71,6 +85,15 @@
                 }
 
                 return false;
+            };
+
+            service.toggleEffectQueue = (queue) => {
+                backendCommunicator.fireEvent("toggleEffectQueue", queue.id);
+                queue.active = !queue.active;
+            };
+
+            service.clearEffectQueue = (queueId) => {
+                backendCommunicator.fireEvent("clearEffectQueue", queueId);
             };
 
             service.saveAllEffectQueues = (effectQueues) => {

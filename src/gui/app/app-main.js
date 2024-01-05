@@ -7,7 +7,7 @@
     const secrets = require("../../secrets.json");
 
     const moment = require("moment");
-    moment.locale(electron.remote.app.getLocale());
+    moment.locale(firebotAppDetails.locale);
 
     agGrid.initialiseAgGridWithAngular1(angular); // eslint-disable-line no-undef
 
@@ -121,9 +121,11 @@
         scheduledTaskService,
         channelRewardsService,
         sortTagsService,
-        iconsService
+        iconsService,
+        videoService,
+        replaceVariableService
     ) {
-        // 'chatMessagesService' is included so its instantiated on app start
+        // 'chatMessagesService' and 'videoService' are included so they're instantiated on app start
 
         connectionService.loadProfiles();
 
@@ -232,7 +234,7 @@
             try {
                 const successful = document.execCommand("copy");
                 const msg = successful ? "successful" : "unsuccessful";
-                logger.info("Copying text command was " + msg);
+                logger.info(`Copying text command was ${msg}`);
             } catch (err) {
                 logger.error("Oops, unable to copy text to clipboard.");
             }
@@ -248,30 +250,9 @@
         * MANAGE LOGINS MODAL
         */
         $scope.showManageLoginsModal = function() {
-            const showManageLoginsModal = {
-                templateUrl: "manageLoginsModal.html",
-                // This is the controller to be used for the modal.
-                controllerFunc: ($scope, $uibModalInstance, connectionService) => {
-                    $scope.cs = connectionService;
-
-                    // Login Kickoff
-                    $scope.loginOrLogout = function(type) {
-                        connectionService.loginOrLogout(type);
-                    };
-
-                    $scope.getAccountAvatar = connectionService.getAccountAvatar;
-
-                    $scope.close = function() {
-                        $uibModalInstance.close();
-                    };
-
-                    // When they hit cancel or click outside the modal, we dont want to do anything
-                    $scope.dismiss = function() {
-                        $uibModalInstance.dismiss("cancel");
-                    };
-                }
-            };
-            utilityService.showModal(showManageLoginsModal);
+            utilityService.showModal({
+                component: "loginsModal"
+            });
         };
 
         /*
@@ -294,7 +275,7 @@
                         connectionService.createNewProfile($scope.profileName);
                     };
 
-                    // When they hit cancel or click outside the modal, we dont want to do anything
+                    // When they hit cancel or click outside the modal, we don't want to do anything
                     $scope.dismiss = function() {
                         $uibModalInstance.dismiss("cancel");
                     };
@@ -328,7 +309,7 @@
                         connectionService.renameProfile($scope.profileName);
                     };
 
-                    // When they hit cancel or click outside the modal, we dont want to do anything
+                    // When they hit cancel or click outside the modal, we don't want to do anything
                     $scope.dismiss = function() {
                         $uibModalInstance.dismiss("cancel");
                     };
@@ -354,7 +335,7 @@
                         connectionService.deleteProfile();
                     };
 
-                    // When they hit cancel or click outside the modal, we dont want to do anything
+                    // When they hit cancel or click outside the modal, we don't want to do anything
                     $scope.dismiss = function() {
                         $uibModalInstance.dismiss("cancel");
                     };
@@ -403,7 +384,7 @@
          */
 
         // Get app version and change titlebar.
-        const appVersion = electron.remote.app.getVersion();
+        const appVersion = firebotAppDetails.version;
         $scope.appTitle = `Firebot v${appVersion}`;
 
         $scope.customFontCssPath = profileManager.getPathInProfile("/fonts/fonts.css");
@@ -459,40 +440,6 @@
                             });
                     }
                 });
-        });
-
-        backendCommunicator.onAsync("takeScreenshot", async (data) => {
-
-            const { desktopCapturer, remote } = require("electron");
-
-            const screen = remote.screen;
-
-            const displays = screen.getAllDisplays();
-
-            const matchingDisplay = displays.find(d => d.id === data.displayId);
-
-            const resolution = matchingDisplay ? {
-                width: matchingDisplay.size.width * matchingDisplay.scaleFactor,
-                height: matchingDisplay.size.height * matchingDisplay.scaleFactor
-            } : {
-                width: 1920,
-                height: 1080
-            };
-
-            try {
-                const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: resolution });
-
-                const foundSource = sources.find(s => s.display_id.toString() === data.displayId.toString());
-
-                if (foundSource) {
-                    return foundSource.thumbnail.toDataURL();
-                }
-                return null;
-
-            } catch (error) {
-                logger.error("Failed to take screenshot", error);
-                return null;
-            }
         });
 
         //show puzzle
@@ -554,6 +501,22 @@
                     return true;
                 }
                 return e.data.username?.toLowerCase() !== botAccountName;
+            }
+            );
+        };
+    });
+
+    app.filter("hideWhispers", function(settingsService) {
+        return function(elements) {
+            const shouldHide = settingsService.getChatHideWhispers();
+            if (!shouldHide) {
+                return elements;
+            }
+            return elements.filter(e => {
+                if (e.type !== 'message') {
+                    return true;
+                }
+                return e.data.whisper !== true;
             }
             );
         };
