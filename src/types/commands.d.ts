@@ -1,3 +1,4 @@
+import { FirebotChatMessage } from "./chat";
 import { EffectList } from "./effects";
 
 type CommandType = "system" | "custom";
@@ -29,9 +30,12 @@ type RestrictionData = {
 export type SubCommand = {
     arg: string;
     usage: string;
+    id?: string;
+    description?: string;
     minArgs?: number;
     regex?: boolean;
     fallback?: boolean;
+    restrictionData?: RestrictionData;
 };
 
 export type CommandDefinition = {
@@ -77,14 +81,41 @@ export type CommandDefinition = {
     cooldown?: Cooldown | undefined;
     effects?: EffectList;
     restrictionData?: RestrictionData;
-    options?: Record<string, unknown> | undefined;
     subCommands?: SubCommand[] | undefined;
     fallbackSubcommand?: SubCommand | undefined;
 };
 
-type SystemCommandDefinition = CommandDefinition & {
-    hideCooldowns?: boolean;
+type SystemCommandOptionBase = {
+    type: "string" | "number" | "boolean" | "enum";
+    title: string;
+    default: unknown;
+    description?: string;
+}
+
+type SystemCommandStringOption = SystemCommandOptionBase & {
+    type: "string";
+    default: string;
+    tip?: string;
+    useTextArea?: boolean;
 };
+
+type SystemCommandNumberOption = SystemCommandOptionBase & {
+    type: "number";
+    default: number;
+};
+
+type SystemCommandBooleanOption = SystemCommandOptionBase & {
+    type: "boolean";
+    default: boolean;
+};
+
+type SystemCommandEnumOption = SystemCommandOptionBase & {
+    type: "enum";
+    options: string[];
+    default: string;
+};
+
+type SystemCommandOption = SystemCommandStringOption | SystemCommandNumberOption | SystemCommandBooleanOption | SystemCommandEnumOption;
 
 type UserCommand = {
     trigger: string;
@@ -95,12 +126,6 @@ type UserCommand = {
     subcommandId?: string;
     commandSender: string;
     senderRoles: string[];
-};
-
-type SystemCommandTriggerEvent = {
-    command: CommandDefinition;
-    commandOptions: Record<string, any>;
-    userCommand: UserCommand;
 };
 
 type BasicCommandDefinition = Omit<
@@ -114,9 +139,20 @@ CommandDefinition,
 | "simple"
 >;
 
-export type SystemCommand = {
-    definition: SystemCommandDefinition;
+export type SystemCommand<OptionsModel = unknown> = {
+    definition: CommandDefinition & {
+        minArgs?: number;
+        options?: Record<keyof OptionsModel, SystemCommandOption>;
+        hideCooldowns?: boolean;
+    };
     onTriggerEvent: (
-        event: SystemCommandTriggerEvent
+        event: {
+            command: SystemCommand<OptionsModel>['definition'];
+            userCommand: UserCommand;
+            chatMessage: FirebotChatMessage;
+            commandOptions?: {
+                [x in keyof OptionsModel]: OptionsModel[x]
+            };
+        }
     ) => PromiseLike<void> | void;
 };
