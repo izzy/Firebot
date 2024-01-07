@@ -4,16 +4,16 @@ import { EVENT_SOURCE_ID } from "../constants";
 import { voicemod } from "../voicemod-connection";
 
 export const ToggleMuteMicEffectType: EffectType<{
-  actionStatus: boolean | string;
+    actionStatus: boolean | string;
 }> = {
-  definition: {
-    id: `${EVENT_SOURCE_ID}:toggle-mute-mic`,
-    name: "Voicemod Toggle Microphone Mute",
-    description: "Enable or disable the microphone mute in Voicemod",
-    icon: "fad fa-play-circle",
-    categories: [EffectCategory.INTEGRATIONS],
-  },
-  optionsTemplate: `
+    definition: {
+        id: `${EVENT_SOURCE_ID}:toggle-mute-mic`,
+        name: "Voicemod Toggle Microphone Mute",
+        description: "Enable or disable the microphone mute in Voicemod",
+        icon: "fad fa-play-circle",
+        categories: [EffectCategory.INTEGRATIONS]
+    },
+    optionsTemplate: `
     <eos-container header="Voicemod Toggle Mic Mute">
       <div class="btn-group" uib-dropdown>
 
@@ -29,38 +29,38 @@ export const ToggleMuteMicEffectType: EffectType<{
       </div>
     </eos-container>
   `,
-  optionsController: ($scope: any, backendCommunicator: any, $q: any) => {
-    $scope.effect.actionStatus = $scope.effect.actionStatus ?? true;
+    optionsController: ($scope: any, backendCommunicator: any, $q: any) => {
+        $scope.effect.actionStatus = $scope.effect.actionStatus ?? true;
 
-    $scope.setStatusAction = (actionStatus: "toggle" | boolean) => {
-      $scope.effect.actionStatus = actionStatus ?? "";
-    };
+        $scope.setStatusAction = (actionStatus: "toggle" | boolean) => {
+            $scope.effect.actionStatus = actionStatus ?? "";
+        };
 
-    $scope.getStatusAction = () => {
-      switch ($scope.effect.actionStatus ?? "") {
-        case "toggle":
-          return "Toggle";
-        case false:
-          return "Disable";
-        case true:
-          return "Enable";
-        default:
-          return "";
-      }
-    };
-  },
-  optionsValidator: () => {
-    return [];
-  },
-  onTriggerEvent: async ({ effect }) => {
-    let currentState = await voicemod.ws.getMuteMicStatus();
-    if (
-      effect.actionStatus === "toggle" ||
+        $scope.getStatusAction = () => {
+            switch ($scope.effect.actionStatus ?? "") {
+                case "toggle":
+                    return "Toggle";
+                case false:
+                    return "Disable";
+                case true:
+                    return "Enable";
+                default:
+                    return "";
+            }
+        };
+    },
+    optionsValidator: () => {
+        return [];
+    },
+    onTriggerEvent: async ({ effect }) => {
+        const currentState = await voicemod.ws.getMuteMicStatus();
+        if (
+            effect.actionStatus === "toggle" ||
       effect.actionStatus !== currentState
-    ) {
-      voicemod.ws.toggleMuteMic();
-    }
+        ) {
+            voicemod.ws.toggleMuteMic();
+        }
 
-    return true;
-  },
+        return true;
+    }
 };

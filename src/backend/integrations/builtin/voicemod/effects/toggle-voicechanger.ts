@@ -4,16 +4,16 @@ import { EVENT_SOURCE_ID } from "../constants";
 import { voicemod } from "../voicemod-connection";
 
 export const ToggleVoiceChangerEffectType: EffectType<{
-  actionStatus: boolean | string;
+    actionStatus: boolean | string;
 }> = {
-  definition: {
-    id: `${EVENT_SOURCE_ID}:toggle-voicechanger`,
-    name: "Voicemod Toggle Voice Changer",
-    description: "Enable or disable the voice changer in Voicemod",
-    icon: "fad fa-play-circle",
-    categories: [EffectCategory.INTEGRATIONS],
-  },
-  optionsTemplate: `
+    definition: {
+        id: `${EVENT_SOURCE_ID}:toggle-voicechanger`,
+        name: "Voicemod Toggle Voice Changer",
+        description: "Enable or disable the voice changer in Voicemod",
+        icon: "fad fa-play-circle",
+        categories: [EffectCategory.INTEGRATIONS]
+    },
+    optionsTemplate: `
     <eos-container header="Voicemod Toggle Voice Changer">
       <div class="btn-group" uib-dropdown>
 
@@ -29,38 +29,38 @@ export const ToggleVoiceChangerEffectType: EffectType<{
       </div>
     </eos-container>
   `,
-  optionsController: ($scope: any, backendCommunicator: any, $q: any) => {
-    $scope.effect.actionStatus = $scope.effect.actionStatus ?? true;
+    optionsController: ($scope: any, backendCommunicator: any, $q: any) => {
+        $scope.effect.actionStatus = $scope.effect.actionStatus ?? true;
 
-    $scope.setStatusAction = (actionStatus: "toggle" | boolean) => {
-      $scope.effect.actionStatus = actionStatus ?? "";
-    };
+        $scope.setStatusAction = (actionStatus: "toggle" | boolean) => {
+            $scope.effect.actionStatus = actionStatus ?? "";
+        };
 
-    $scope.getStatusAction = () => {
-      switch ($scope.effect.actionStatus ?? "") {
-        case "toggle":
-          return "Toggle";
-        case false:
-          return "Disable";
-        case true:
-          return "Enable";
-        default:
-          return "";
-      }
-    };
-  },
-  optionsValidator: () => {
-    return [];
-  },
-  onTriggerEvent: async ({ effect }) => {
-    let nextState;
-    if (effect.actionStatus === "toggle") {
-      nextState = !(await voicemod.ws.getVoiceChangerStatus());
-    } else {
-      nextState = effect.actionStatus;
+        $scope.getStatusAction = () => {
+            switch ($scope.effect.actionStatus ?? "") {
+                case "toggle":
+                    return "Toggle";
+                case false:
+                    return "Disable";
+                case true:
+                    return "Enable";
+                default:
+                    return "";
+            }
+        };
+    },
+    optionsValidator: () => {
+        return [];
+    },
+    onTriggerEvent: async ({ effect }) => {
+        let nextState;
+        if (effect.actionStatus === "toggle") {
+            nextState = !(await voicemod.ws.getVoiceChangerStatus());
+        } else {
+            nextState = effect.actionStatus;
+        }
+
+        voicemod.ws.toggleVoiceChanger(nextState);
+        return true;
     }
-
-    voicemod.ws.toggleVoiceChanger(nextState);
-    return true;
-  },
 };
