@@ -9,7 +9,7 @@ export const SetRandomVoiceEffectType: EffectType<{
 }> = {
     definition: {
         id: `${EVENT_SOURCE_ID}:set-random-voice`,
-        name: "Set Random Voicemod voice",
+        name: "Voicemod Set Random Voice",
         description: "Set the active Voicemod voice to a random voice",
         icon: "fad fa-microphone",
         categories: [EffectCategory.INTEGRATIONS]

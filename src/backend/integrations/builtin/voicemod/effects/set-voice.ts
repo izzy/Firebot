@@ -9,7 +9,7 @@ export const SetVoiceEffectType: EffectType<{
 }> = {
     definition: {
         id: `${EVENT_SOURCE_ID}:set-voice`,
-        name: "Set Voicemod voice",
+        name: "Voicemod Set Voice",
         description: "Set the active Voicemod voice",
         icon: "fad fa-microphone",
         categories: [EffectCategory.INTEGRATIONS]

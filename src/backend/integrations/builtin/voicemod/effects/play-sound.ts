@@ -12,7 +12,7 @@ export const PlaySoundEffectType: EffectType<{
 }> = {
     definition: {
         id: `${EVENT_SOURCE_ID}:play-sound`,
-        name: "Play Voicemod Sound",
+        name: "Voicemod Play Sound",
         description: "Play a sound from the Voicemod soundboard",
         icon: "fad fa-speaker",
         categories: [EffectCategory.INTEGRATIONS]
