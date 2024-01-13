@@ -15,7 +15,7 @@ export const StopSoundsEffectType: EffectType<{
         categories: [EffectCategory.INTEGRATIONS]
     },
     optionsTemplate: `
-    <eos-container header="Voicemod Toggle Beep">
+    <eos-container header="Voicemod Stop Sounds">
     </eos-container>
   `,
     optionsController: ($scope: any, backendCommunicator: any, $q: any) => {},
