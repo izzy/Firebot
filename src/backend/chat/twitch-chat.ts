@@ -1,8 +1,9 @@
 import { EventEmitter } from "events";
 import { ChatClient } from "@twurple/chat";
 
+import { BasicViewer } from "../../types/viewers";
 import chatHelpers from "./chat-helpers";
-import activeUserHandler, { User } from "./chat-listeners/active-user-handler";
+import activeUserHandler from "./chat-listeners/active-user-handler";
 import twitchChatListeners from "./chat-listeners/twitch-chat-listeners";
 import * as twitchSlashCommandHandler from "./twitch-slash-command-handler";
 
@@ -36,15 +37,13 @@ interface UserVipRequest {
 }
 
 class TwitchChat extends EventEmitter {
-    private _streamerIncomingChatClient: ChatClient;
-    private _streamerOutgoingingChatClient: ChatClient;
+    private _streamerChatClient: ChatClient;
     private _botChatClient: ChatClient;
 
     constructor() {
         super();
 
-        this._streamerIncomingChatClient = null;
-        this._streamerOutgoingingChatClient = null;
+        this._streamerChatClient = null;
         this._botChatClient = null;
     }
 
@@ -53,8 +52,7 @@ class TwitchChat extends EventEmitter {
      */
     get chatIsConnected(): boolean {
         return (
-            this._streamerIncomingChatClient?.irc?.isConnected === true &&
-            this._streamerOutgoingingChatClient?.irc?.isConnected === true
+            this._streamerChatClient?.irc?.isConnected === true
         );
     }
 
@@ -62,13 +60,9 @@ class TwitchChat extends EventEmitter {
      * Disconnects the streamer and bot from chat
      */
     async disconnect(emitDisconnectEvent = true): Promise<void> {
-        if (this._streamerIncomingChatClient != null) {
-            this._streamerIncomingChatClient.quit();
-            this._streamerIncomingChatClient = null;
-        }
-        if (this._streamerOutgoingingChatClient != null) {
-            this._streamerOutgoingingChatClient.quit();
-            this._streamerOutgoingingChatClient = null;
+        if (this._streamerChatClient != null) {
+            this._streamerChatClient.quit();
+            this._streamerChatClient = null;
         }
         if (this._botChatClient != null && this._botChatClient?.irc?.isConnected === true) {
             this._botChatClient.quit();
@@ -101,24 +95,17 @@ class TwitchChat extends EventEmitter {
         await this.disconnect(false);
 
         try {
-            this._streamerIncomingChatClient = new ChatClient({
-                authProvider: streamerAuthProvider,
-                requestMembershipEvents: true
-            });
-            this._streamerOutgoingingChatClient = new ChatClient({
+            this._streamerChatClient = new ChatClient({
                 authProvider: streamerAuthProvider,
                 requestMembershipEvents: true
             });
 
-            this._streamerIncomingChatClient.irc.onRegister(() => {
-                this._streamerIncomingChatClient.join(streamer.username);
+            this._streamerChatClient.irc.onRegister(() => {
+                this._streamerChatClient.join(streamer.username);
                 frontendCommunicator.send("twitch:chat:autodisconnected", false);
             });
-            this._streamerOutgoingingChatClient.irc.onRegister(() => {
-                this._streamerOutgoingingChatClient.join(streamer.username);
-            });
 
-            this._streamerIncomingChatClient.irc.onPasswordError((event) => {
+            this._streamerChatClient.irc.onPasswordError((event) => {
                 logger.error("Failed to connect to chat", event);
                 frontendCommunicator.send(
                     "error",
@@ -127,35 +114,30 @@ class TwitchChat extends EventEmitter {
                 this.disconnect(true);
             });
 
-            this._streamerIncomingChatClient.irc.onConnect(() => {
+            this._streamerChatClient.irc.onConnect(() => {
                 this.emit("connected");
             });
 
-            this._streamerIncomingChatClient.irc.onDisconnect((manual, reason) => {
+            this._streamerChatClient.irc.onDisconnect((manual, reason) => {
                 if (!manual) {
-                    logger.error("Chat disconnected unexpectedly", reason);
+                    logger.error("Incoming Chat disconnected unexpectedly", reason);
                     frontendCommunicator.send("twitch:chat:autodisconnected", true);
                 }
             });
 
-            this._streamerOutgoingingChatClient.irc.onDisconnect((manual, reason) => {
-                if (!manual) {
-                    logger.error("Chat disconnected unexpectedly", reason);
-                    frontendCommunicator.send("twitch:chat:autodisconnected", true);
-                }
-            });
-
-            this._streamerIncomingChatClient.connect();
-            this._streamerOutgoingingChatClient.connect();
+            this._streamerChatClient.connect();
 
             await chatHelpers.handleChatConnect();
 
+            // Attempt to reload the known bot list in case it failed on start
+            await chatRolesManager.cacheViewerListBots();
+
             chatterPoll.startChatterPoll();
 
-            const vips = await twitchApi.channels.getVips();
-            if (vips) {
-                chatRolesManager.loadUsersInVipRole(vips);
-            }
+            // Refresh these once we connect to Twitch
+            // While connected, we can just react to changes via chat messages/EventSub events
+            await chatRolesManager.loadVips();
+            await chatRolesManager.loadModerators();
         } catch (error) {
             logger.error("Chat connect error", error);
             await this.disconnect();
@@ -183,7 +165,7 @@ class TwitchChat extends EventEmitter {
         }
 
         try {
-            twitchChatListeners.setupChatListeners(this._streamerIncomingChatClient, this._botChatClient);
+            twitchChatListeners.setupChatListeners(this._streamerChatClient, this._botChatClient);
         } catch (error) {
             logger.error("Error setting up chat listeners", error);
         }
@@ -195,12 +177,10 @@ class TwitchChat extends EventEmitter {
      * @param {string} accountType The type of account to whisper with ('streamer' or 'bot')
      */
     async _say(message: string, accountType: string, replyToId?: string): Promise<void> {
-        const chatClient = accountType === "bot" ? this._botChatClient : this._streamerOutgoingingChatClient;
         try {
             logger.debug(`Sending message as ${accountType}.`);
 
-            const streamer = accountAccess.getAccounts().streamer;
-            chatClient.say(streamer.username, message, replyToId ? { replyTo: replyToId } : undefined);
+            await twitchApi.chat.sendChatMessage(message, replyToId ?? undefined, accountType === "bot");
         } catch (error) {
             logger.error(`Error attempting to send message with ${accountType}`, error);
         }
@@ -273,8 +253,8 @@ class TwitchChat extends EventEmitter {
         // split message into fragments that don't exceed the max message length
         const messageFragments = message
             .match(/[\s\S]{1,500}/g)
-            .map((mf) => mf.trim())
-            .filter((mf) => mf !== "");
+            .map(mf => mf.trim())
+            .filter(mf => mf !== "");
 
         // Send all message fragments
         for (const fragment of messageFragments) {
@@ -290,7 +270,7 @@ class TwitchChat extends EventEmitter {
         await chatterPoll.runChatterPoll();
     }
 
-    async getViewerList(): Promise<User[]> {
+    async getViewerList(): Promise<BasicViewer[]> {
         const users = activeUserHandler.getAllOnlineUsers();
         return users;
     }
@@ -366,10 +346,14 @@ frontendCommunicator.onAsync("update-user-vip-status", async (data: UserVipReque
 
     if (shouldBeVip) {
         await twitchApi.moderation.addChannelVip(user.id);
-        chatRolesManager.addVipToVipList(username);
+        chatRolesManager.addVipToVipList({
+            id: user.id,
+            username: user.name,
+            displayName: user.displayName
+        });
     } else {
         await twitchApi.moderation.removeChannelVip(user.id);
-        chatRolesManager.removeVipFromVipList(username);
+        chatRolesManager.removeVipFromVipList(user.id);
     }
 });
 

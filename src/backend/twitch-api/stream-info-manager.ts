@@ -1,11 +1,15 @@
+import { DateTime } from "luxon";
+import axios from "axios";
 import logger from "../logwrapper";
 import accountAccess from "../common/account-access";
+import { settings } from "../common/settings-access";
 import frontendCommunicator from "../common/frontend-communicator";
 import TwitchApi from "./api";
 import {
     triggerCategoryChanged,
     triggerTitleChanged
 } from "../events/twitch-events/stream";
+import adManager from "./ad-manager";
 
 interface TwitchStreamInfo {
     isLive?: boolean;
@@ -20,8 +24,12 @@ interface TwitchStreamInfo {
 // every 15 secs
 const POLL_INTERVAL = 15 * 1000;
 
+// Every 25 minutes
+const WEB_CHECKIN_INTERVAL = 25;
+
 class TwitchStreamInfoManager {
     private _streamInfoPollIntervalId: NodeJS.Timeout;
+    private _lastWebCheckin: DateTime = DateTime.fromMillis(0);
 
     streamInfo: TwitchStreamInfo = {
         isLive: false,
@@ -32,6 +40,22 @@ class TwitchStreamInfoManager {
     private clearPollInterval(): void {
         if (this._streamInfoPollIntervalId != null) {
             clearTimeout(this._streamInfoPollIntervalId);
+        }
+
+        adManager.stopAdCheck();
+    }
+
+    private async doWebCheckin(): Promise<void> {
+        try {
+            if (Math.abs(this._lastWebCheckin.diffNow("minutes").minutes) >= WEB_CHECKIN_INTERVAL) {
+                logger.debug("Sending online heartbeat to firebot.app");
+
+                await axios.post(`https://firebot.app/api/live-now/${accountAccess.getAccounts().streamer.userId}`);
+
+                this._lastWebCheckin = DateTime.utc();
+            }
+        } catch (error) {
+            logger.warn(`Unable to do online web check-in: ${error.message}`);
         }
     }
 
@@ -50,6 +74,8 @@ class TwitchStreamInfoManager {
         if (stream == null) {
             if (this.streamInfo.isLive) {
                 streamInfoChanged = true;
+
+                adManager.stopAdCheck();
             }
             this.streamInfo.isLive = false;
         } else {
@@ -57,10 +83,19 @@ class TwitchStreamInfoManager {
                 this.streamInfo.viewers !== stream.viewers ||
                 this.streamInfo.startedAt !== stream.startDate) {
                 streamInfoChanged = true;
+
+                // We just went live, so start the ad check
+                if (!this.streamInfo.isLive) {
+                    adManager.startAdCheck();
+                }
             }
             this.streamInfo.isLive = true;
             this.streamInfo.viewers = stream.viewers;
             this.streamInfo.startedAt = stream.startDate;
+
+            if (settings.getWebOnlineCheckin() === true) {
+                await this.doWebCheckin();
+            }
 
             const metaUpdateResult = this.updateStreamInfo({
                 categoryId: channelInfo.gameId,

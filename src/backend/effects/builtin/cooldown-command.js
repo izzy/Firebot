@@ -16,11 +16,11 @@ const model = {
         <eos-container header="Selection Type" ng-init="showSubcommands = effect.subcommandId != null">
             <div ng-if="sortTags && sortTags.length">
                 <label class="control-fb control--radio">Single Command
-                    <input type="radio" ng-model="effect.selectionType" value="command" />
+                    <input type="radio" ng-model="effect.selectionType" value="command" ng-change="typeSelected()" />
                     <div class="control__indicator"></div>
                 </label>
                 <label class="control-fb control--radio">Commands With Tag
-                    <input type="radio" ng-model="effect.selectionType" value="sortTag" />
+                    <input type="radio" ng-model="effect.selectionType" value="sortTag" ng-change="typeSelected()" />
                     <div class="control__indicator"></div>
                 </label>
             </div>
@@ -143,8 +143,8 @@ const model = {
         $scope.createSubcommandOptions = () => {
             const options = {};
             if ($scope.subcommands) {
-                $scope.subcommands.forEach(sc => {
-                    options[sc.id] = sc.regex || sc.fallback ? (sc.usage || "").split(" ")[0] : sc.arg;
+                $scope.subcommands.forEach((sc) => {
+                    options[sc.id] = sc.regex || sc.fallback ? (sc.usage || (sc.fallback ? "Fallback" : "")).split(" ")[0] : sc.arg;
                 });
             }
             $scope.subcommandOptions = options;
@@ -163,15 +163,32 @@ const model = {
             if (command.subCommands) {
                 $scope.subcommands = command.subCommands;
             }
+
+            if (command.fallbackSubcommand) {
+                $scope.subcommands.push(command.fallbackSubcommand);
+            }
+
             $scope.createSubcommandOptions();
         };
+
+        $scope.typeSelected = () => {
+            if ($scope.effect.selectionType === "sortTag") {
+                $scope.effect.commandId = null;
+                $scope.showSubcommands = false;
+                $scope.subcommands = [];
+                $scope.effect.subcommandId = null;
+            } else {
+                $scope.effect.sortTagId = null;
+            }
+        };
+
         $scope.commandSelected = (command) => {
             $scope.effect.commandId = command.id;
             $scope.getSubcommands();
         };
         $scope.getSubcommands();
     },
-    optionsValidator: effect => {
+    optionsValidator: (effect) => {
         const errors = [];
         if (effect.commandId == null && effect.sortTagId == null) {
             errors.push("Please select a command or tag");
@@ -184,7 +201,7 @@ const model = {
         }
         return errors;
     },
-    onTriggerEvent: async event => {
+    onTriggerEvent: async (event) => {
         const { effect } = event;
         const commandIds = [];
 
@@ -197,15 +214,15 @@ const model = {
         }
 
         if (effect.sortTagId != null && effect.selectionType === "sortTag") {
-            const commandManager = require("../../chat/commands/CommandManager");
+            const commandManager = require("../../chat/commands/command-manager");
             const commands = commandManager.getAllCustomCommands().filter(c => c.sortTags.includes(effect.sortTagId));
             commands.forEach(c => commandIds.push(c.id));
         }
 
-        const commandHandler = require("../../chat/commands/commandHandler");
-        commandIds.forEach(id => {
+        const commandCooldownManager = require("../../chat/commands/command-cooldown-manager");
+        commandIds.forEach((id) => {
             if (effect.action === "Add") {
-                commandHandler.manuallyCooldownCommand({
+                commandCooldownManager.manuallyCooldownCommand({
                     commandId: id,
                     subcommandId: effect.subcommandId,
                     username: effect.username,
@@ -215,7 +232,7 @@ const model = {
                     }
                 });
             } else if (effect.action === "Clear") {
-                commandHandler.manuallyClearCooldownCommand({
+                commandCooldownManager.manuallyClearCooldownCommand({
                     commandId: id,
                     subcommandId: effect.subcommandId,
                     username: effect.clearUsername,

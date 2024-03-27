@@ -10,6 +10,8 @@
         ) {
             $scope.channelRewardsService = channelRewardsService;
 
+            $scope.activeChannelRewardTab = 0;
+
             $scope.canUseChannelRewards = () => accountAccess.accounts["streamer"].loggedIn
                 && (accountAccess.accounts["streamer"].broadcasterType === "affiliate"
                     || accountAccess.accounts["streamer"].broadcasterType === "partner");
@@ -21,7 +23,7 @@
                 channelRewardsService.saveAllRewards(items);
             };
 
-            $scope.headers = [
+            $scope.rewardHeaders = [
                 {
                     headerStyles: {
                         'width': '50px'
@@ -39,12 +41,16 @@
                     headerStyles: {
                         'min-width': '125px'
                     },
-                    cellTemplate: `{{data.twitchData.title}} <i ng-hide="data.manageable" class="fas fa-lock muted" style="font-size: 12px;" uib-tooltip="This reward was created outside of Firebot, it's settings are locked from changes." />`,
+                    dataField: "twitchData.title",
+                    sortable: true,
+                    cellTemplate: `{{data.twitchData.title}} <i ng-hide="data.manageable" class="fas fa-lock muted" style="font-size: 12px;" uib-tooltip="This reward was created either outside of Firebot or in an older version. Its settings cannot be changed in Firebot." />`,
                     cellController: () => {}
                 },
                 {
                     name: "COST",
                     icon: "fa-coin",
+                    dataField: "twitchData.cost",
+                    sortable: true,
                     cellTemplate: `{{data.twitchData.cost}}`,
                     cellController: () => {}
                 },
@@ -64,7 +70,7 @@
                         }
                     },
                     {
-                        html: `<a href uib-tooltip="This reward was created outside of Firebot, its enabled status cannot be edited." tooltip-enable="${!item.manageable}"><i class="far fa-toggle-off" style="margin-right: 10px;"></i> ${item.twitchData.isEnabled ? "Disable Channel Reward" : "Enable Channel Reward"}</a>`,
+                        html: `<a href uib-tooltip="This reward was created either outside of Firebot or in an older version. Its enabled status cannot be edited." tooltip-enable="${!item.manageable}"><i class="far fa-toggle-off" style="margin-right: 10px;"></i> ${item.twitchData.isEnabled ? "Disable Channel Reward" : "Enable Channel Reward"}</a>`,
                         click: function () {
                             item.twitchData.isEnabled = !item.twitchData.isEnabled;
                             channelRewardsService.saveChannelReward(item);
@@ -73,7 +79,7 @@
                         enabled: item.manageable
                     },
                     {
-                        html: `<a href uib-tooltip="This reward was created outside of Firebot, its paused status cannot be edited." tooltip-enable="${!item.manageable}"><i class="far fa-toggle-off" style="margin-right: 10px;"></i> ${item.twitchData.isPaused ? "Unpause Channel Reward" : "Pause Channel Reward"}</a>`,
+                        html: `<a href uib-tooltip="This reward was created either outside of Firebot or in an older version. Its paused status cannot be edited." tooltip-enable="${!item.manageable}"><i class="far fa-toggle-off" style="margin-right: 10px;"></i> ${item.twitchData.isPaused ? "Unpause Channel Reward" : "Pause Channel Reward"}</a>`,
                         click: function () {
                             item.twitchData.isPaused = !item.twitchData.isPaused;
                             channelRewardsService.saveChannelReward(item);
@@ -89,7 +95,7 @@
                         enabled: channelRewardsService.channelRewards.length < 50
                     },
                     {
-                        html: `<a href style="${item.manageable ? 'color: #fb7373;' : ''}" uib-tooltip="This reward was created outside of Firebot, it cannot be deleted from here." tooltip-enable="${!item.manageable}"><i class="far fa-trash-alt" style="margin-right: 10px;"></i> Delete</a>`,
+                        html: `<a href style="${item.manageable ? 'color: #fb7373;' : ''}" uib-tooltip="This reward was created either outside of Firebot or in an older version. It cannot be deleted from here." tooltip-enable="${!item.manageable}"><i class="far fa-trash-alt" style="margin-right: 10px;"></i> Delete</a>`,
                         click: function () {
                             utilityService
                                 .showConfirmationModal({
@@ -98,7 +104,7 @@
                                     confirmLabel: "Delete",
                                     confirmBtnType: "btn-danger"
                                 })
-                                .then(confirmed => {
+                                .then((confirmed) => {
                                     if (confirmed) {
                                         channelRewardsService.deleteChannelReward(item.id);
                                     }

@@ -145,7 +145,7 @@ class HttpServerManager extends EventEmitter {
             const fullCustomRoute = `${customRoute}${customRoutePredicate}`;
 
             // Find the matching registered custom route
-            const customRouteEntry = this.customRoutes.find((cr) =>
+            const customRouteEntry = this.customRoutes.find(cr =>
                 cr.fullRoute === fullCustomRoute &&
                 cr.method === req.method
             );
@@ -186,6 +186,7 @@ class HttpServerManager extends EventEmitter {
                         eventManager.triggerEvent("firebot", "overlay-connected", {
                             instanceName: event.data.instanceName
                         });
+                        this.emit("overlay-connected", event.data.instanceName);
                     } else {
                         this.emit("overlay-event", event);
                     }
@@ -196,16 +197,17 @@ class HttpServerManager extends EventEmitter {
         });
 
         try {
-            this.overlayServer = this.defaultHttpServer.listen(port);
-            this.isDefaultServerStarted = true;
+            this.overlayServer = this.defaultHttpServer.listen(port, ["0.0.0.0", "::"], () => {
+                this.isDefaultServerStarted = true;
 
-            this.serverInstances.push({
-                name: "Default",
-                port: port,
-                server: this.overlayServer
+                this.serverInstances.push({
+                    name: "Default",
+                    port: port,
+                    server: this.overlayServer
+                });
+
+                logger.info(`Default web server started, listening on port ${this.overlayServer.address().port}`);
             });
-
-            logger.info(`Default web server started, listening on port ${this.overlayServer.address().port}`);
         } catch (error) {
             logger.error(`Unable to start default web server on port ${port}: ${error}`);
         }
@@ -221,7 +223,7 @@ class HttpServerManager extends EventEmitter {
 
         this.defaultWebsocketServerInstance.clients.forEach(function each(client) {
             if (client.readyState === 1) {
-                client.send(dataRaw, err => {
+                client.send(dataRaw, (err) => {
                     if (err) {
                         logger.error(err);
                     }
@@ -244,7 +246,7 @@ class HttpServerManager extends EventEmitter {
             }
 
             let newHttpServer = http.createServer(instance);
-            newHttpServer = newHttpServer.listen(port);
+            newHttpServer = newHttpServer.listen(port, ["0.0.0.0", "::"]);
 
             this.serverInstances.push({
                 name: name,
@@ -314,7 +316,7 @@ class HttpServerManager extends EventEmitter {
             fullRoute
         } = this.buildCustomRouteParameters(prefix, route, method);
 
-        if (this.customRoutes.findIndex((cr) => cr.fullRoute === fullRoute && cr.method === normalizedMethod) > -1) {
+        if (this.customRoutes.findIndex(cr => cr.fullRoute === fullRoute && cr.method === normalizedMethod) > -1) {
             logger.error(`Failed to register custom route: Custom route already registered at "${fullRoute}"`);
             return false;
         }
@@ -351,7 +353,7 @@ class HttpServerManager extends EventEmitter {
             fullRoute
         } = this.buildCustomRouteParameters(prefix, route, method);
 
-        const customRouteIndex = this.customRoutes.findIndex((cr) =>
+        const customRouteIndex = this.customRoutes.findIndex(cr =>
             cr.prefix === normalizedPrefix &&
             cr.route === normalizedRoute &&
             cr.method === normalizedMethod &&
@@ -374,8 +376,8 @@ class HttpServerManager extends EventEmitter {
         const normalizedRoute = route.toLowerCase().replace(/\/$/, '');
         const normalizedMethod = method.toUpperCase();
 
-        const fullRoute = path.join(normalizedPrefix, normalizedRoute)
-            .replace("\\", "/");
+        // Force POSIX paths because URL
+        const fullRoute = path.posix.join(normalizedPrefix, normalizedRoute);
 
         return {
             normalizedPrefix,
@@ -394,15 +396,17 @@ setInterval(() => {
         : manager.defaultWebsocketServerInstance.clients.size > 0;
 
     if (clientsConnected !== manager.overlayHasClients) {
-        renderWindow.webContents.send("overlayStatusUpdate", {
-            clientsConnected: clientsConnected,
-            serverStarted: manager.isDefaultServerStarted
-        });
+        if (global.hasOwnProperty("renderWindow") && renderWindow?.webContents?.isDestroyed() === false) {
+            renderWindow.webContents.send("overlayStatusUpdate", {
+                clientsConnected: clientsConnected,
+                serverStarted: manager.isDefaultServerStarted
+            });
+        }
         manager.overlayHasClients = clientsConnected;
     }
 }, 3000);
 
-ipcMain.on("getOverlayStatus", event => {
+ipcMain.on("getOverlayStatus", (event) => {
     event.returnValue = {
         clientsConnected: manager.overlayHasClients,
         serverStarted: manager.isDefaultServerStarted

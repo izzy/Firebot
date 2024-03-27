@@ -1,6 +1,6 @@
 "use strict";
 
-const userDb = require("../database/userDatabase");
+const viewerDatabase = require("../viewers/viewer-database");
 const accountAccess = require("../common/account-access");
 const NodeCache = require('node-cache');
 const twitchApi = require("../twitch-api/api");
@@ -13,39 +13,51 @@ const teamRolesManager = require("../roles/team-roles-manager");
 
 const followCache = new NodeCache({ stdTTL: 10, checkperiod: 10 });
 
-async function userFollowsChannels(username, channelNames) {
+async function userFollowsChannels(username, channelNames, durationInSeconds = 0) {
     let userfollowsAllChannels = true;
 
     for (const channelName of channelNames) {
-        let userFollowsChannel = false;
+        /**
+         * @type {import('@twurple/api').HelixChannelFollower | boolean}
+         */
+        let userFollow;
 
         // check cache first
         const cachedFollow = followCache.get(`${username}:${channelName}`);
         if (cachedFollow !== undefined) {
-            userFollowsChannel = cachedFollow;
+            userFollow = cachedFollow;
         } else {
-            userFollowsChannel = await twitchApi.users.doesUserFollowChannel(username, channelName);
+            userFollow = await twitchApi.users.getUserChannelFollow(username, channelName);
 
             // set cache value
-            followCache.set(`${username}:${channelName}`, userFollowsChannel);
+            followCache.set(`${username}:${channelName}`, userFollow);
         }
 
-        if (!userFollowsChannel) {
+        if (!userFollow) {
             userfollowsAllChannels = false;
             break;
+        }
+
+        if (userFollow === true) { // streamer follow
+            continue;
+        }
+
+        if (durationInSeconds > 0) {
+            const followTime = Math.round(userFollow.followDate.getTime() / 1000);
+            const currentTime = Math.round(new Date().getTime() / 1000);
+            if ((currentTime - followTime) < durationInSeconds) {
+                userfollowsAllChannels = false;
+                break;
+            }
         }
     }
 
     return userfollowsAllChannels;
 }
 
-function getUser(userId) {
-    return twitchApi.users.getUserById(userId);
-}
-
 async function getUserDetails(userId) {
 
-    const firebotUserData = await userDb.getUserById(userId);
+    const firebotUserData = await viewerDatabase.getViewerById(userId);
 
     if (firebotUserData != null && !firebotUserData.twitch) {
         return {
@@ -53,9 +65,10 @@ async function getUserDetails(userId) {
         };
     }
 
+    /** @type {import("@twurple/api").HelixUser} */
     let twitchUser;
     try {
-        twitchUser = await getUser(userId);
+        twitchUser = await twitchApi.users.getUserById(userId);
     } catch (error) {
         // fail silently for now
     }
@@ -70,7 +83,7 @@ async function getUserDetails(userId) {
         id: twitchUser.id,
         username: twitchUser.name,
         displayName: twitchUser.displayName,
-        iconUrl: twitchUser.profilePictureUrl,
+        profilePicUrl: twitchUser.profilePictureUrl,
         creationDate: twitchUser.creationDate
     };
 
@@ -80,11 +93,12 @@ async function getUserDetails(userId) {
         chatHelpers.setUserProfilePicUrl(twitchUser.id, twitchUser.profilePictureUrl);
 
         firebotUserData.profilePicUrl = twitchUser.profilePictureUrl;
-        userDb.updateUser(firebotUserData);
+        await viewerDatabase.updateViewer(firebotUserData);
 
         frontendCommunicator.send("twitch:chat:user-updated", {
             id: firebotUserData._id,
-            username: firebotUserData.displayName,
+            username: firebotUserData.username,
+            displayName: firebotUserData.displayName,
             roles: userRoles,
             profilePicUrl: firebotUserData.profilePicUrl,
             active: activeUserHandler.userIsActive(firebotUserData._id)
@@ -137,6 +151,5 @@ async function getUserDetails(userId) {
     return userDetails;
 }
 
-exports.getUser = getUser;
 exports.getUserDetails = getUserDetails;
 exports.userFollowsChannels = userFollowsChannels;
