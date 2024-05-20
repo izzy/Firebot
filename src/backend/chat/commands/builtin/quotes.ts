@@ -205,7 +205,7 @@ export const QuotesManagementSystemCommand: SystemCommand<{
      * When the command is triggered
      */
     onTriggerEvent: (event) => {
-        return new Promise(async (resolve) => {
+        return new Promise<void>(async (resolve) => {
             const quotesManager = require("../../../quotes/quotes-manager");
             const logger = require("../../../logwrapper");
             const twitchChat = require("../../twitch-chat");
@@ -305,7 +305,7 @@ export const QuotesManagementSystemCommand: SystemCommand<{
                         return resolve();
                     }
 
-                    await twitchChat.sendChatMessage(`Sorry! Couldnt find a quote with that id number.`);
+                    await twitchChat.sendChatMessage(`Sorry! We couldn't find a quote with that id number.`);
                     logger.error('Quotes: NaN passed to remove quote command.');
                     return resolve();
                 }
@@ -352,7 +352,7 @@ export const QuotesManagementSystemCommand: SystemCommand<{
                         // no matching quote found
                     } else {
 
-                        await twitchChat.sendChatMessage(`Sorry! We couldnt find a quote using those terms.`);
+                        await twitchChat.sendChatMessage(`Sorry! We couldn't find a quote using those terms.`);
                     }
 
                     // resolve promise

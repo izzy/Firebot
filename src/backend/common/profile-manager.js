@@ -2,6 +2,7 @@
 
 const { app } = require("electron");
 const { JsonDB } = require("node-json-db");
+const fs = require("fs");
 const path = require("path");
 const dataAccess = require("./data-access.js");
 const logger = require("../logwrapper");
@@ -148,25 +149,47 @@ function deleteProfile() {
 }
 
 const getPathInProfile = function(filepath) {
-    const profilePath =
-    `${dataAccess.getUserDataPath()}/profiles/${getLoggedInProfile()}`;
-    return path.join(profilePath, filepath);
+    return path.join(dataAccess.getUserDataPath(),
+        "profiles",
+        getLoggedInProfile(),
+        filepath);
+};
+
+const getPathInProfileRelativeToUserData = function(filepath) {
+    return path.join("profiles", getLoggedInProfile(), filepath);
 };
 
 /**
  * @returns JsonDB
  */
 const getJsonDbInProfile = function(filepath, humanReadable = true) {
-    const profilePath =
-      `${dataAccess.getUserDataPath()}/profiles/${getLoggedInProfile()}`,
-        jsonDbPath = path.join(profilePath, filepath);
-    return new JsonDB(jsonDbPath, true, humanReadable);
+    const jsonDbPath = getPathInProfile(filepath);
+
+    try {
+        const db = new JsonDB(jsonDbPath, true, humanReadable);
+        db.load();
+        return db;
+    } catch (error) {
+        logger.error(`Error loading JsonDB at ${jsonDbPath}. Attempting to recreate.`);
+
+        const fullPath = jsonDbPath.toLowerCase().endsWith(".json")
+            ? jsonDbPath
+            : `${jsonDbPath}.json`;
+
+        fs.rmSync(fullPath, { force: true });
+
+        return new JsonDB(jsonDbPath, true, humanReadable);
+    }
 };
 
 const profileDataPathExistsSync = function(filePath) {
-    const profilePath = `/profiles/${getLoggedInProfile()}`,
-        joinedPath = path.join(profilePath, filePath);
+    const joinedPath = getPathInProfileRelativeToUserData(filePath);
     return dataAccess.userDataPathExistsSync(joinedPath);
+};
+
+const deletePathInProfile = function(filePath) {
+    const joinedPath = getPathInProfileRelativeToUserData(filePath);
+    return dataAccess.deletePathInUserData(joinedPath);
 };
 
 exports.getLoggedInProfile = getLoggedInProfile;
@@ -179,3 +202,4 @@ exports.logInProfile = logInProfile;
 exports.renameProfile = renameProfile;
 exports.getNewProfileName = () => profileToRename;
 exports.hasProfileRename = () => profileToRename != null;
+exports.deletePathInProfile = deletePathInProfile;

@@ -6,6 +6,7 @@ const EventEmitter = require("events");
 const expressionish = require('expressionish');
 const ExpressionVariableError = expressionish.ExpressionVariableError;
 const frontendCommunicator = require("../common/frontend-communicator");
+const { getCustomVariable } = require('../common/custom-variable-manager');
 const util = require("../utility");
 
 function preeval(options, variable) {
@@ -18,18 +19,18 @@ function preeval(options, variable) {
 
     if (varTrigger == null || varTrigger === false) {
         throw new ExpressionVariableError(
-            `$${variable.value} does not support being triggered by: ${display}`,
+            `$${variable.handle} does not support being triggered by: ${display}`,
             variable.position,
-            variable.value
+            variable.handle
         );
     }
 
     if (Array.isArray(varTrigger)) {
         if (!varTrigger.some(id => id === options.trigger.id)) {
             throw new ExpressionVariableError(
-                `$${variable.value} does not support this specific trigger type: ${display}`,
+                `$${variable.handle} does not support this specific trigger type: ${display}`,
                 variable.position,
-                variable.value
+                variable.handle
             );
         }
     }
@@ -43,7 +44,7 @@ class ReplaceVariableManager extends EventEmitter {
 
     registerReplaceVariable(variable) {
         if (this._registeredVariableHandlers.has(variable.definition.handle)) {
-            throw new TypeError("A variable with this handle already exists.");
+            throw new TypeError(`A variable with the handle ${variable.definition.handle} already exists.`);
         }
         this._registeredVariableHandlers.set(
             variable.definition.handle,
@@ -77,14 +78,51 @@ class ReplaceVariableManager extends EventEmitter {
         return this._registeredVariableHandlers;
     }
 
-    evaluateText(input, metadata, trigger) {
-        return expressionish({
-            handlers: this._registeredVariableHandlers,
-            expression: input,
-            metadata,
-            trigger,
-            preeval
-        });
+    evaluateText(input, metadata, trigger, onlyValidate) {
+        if (input.includes('$')) {
+            return expressionish({
+                handlers: this._registeredVariableHandlers,
+                expression: input,
+                metadata,
+                trigger,
+                preeval,
+                lookups: new Map([
+                    ['$', name => ({
+                        evaluator: (trigger, ...path) => {
+                            let result = getCustomVariable(name);
+                            for (const item of path) {
+                                if (result == null) {
+                                    return null;
+                                }
+                                result = result[item];
+                            }
+                            return result == null ? null : result;
+                        }
+                    })],
+                    ['&', name => ({
+                        evaluator: (trigger, ...path) => {
+                            let result = trigger.effectOutputs;
+                            result = result[name];
+                            for (const item of path) {
+                                if (result == null) {
+                                    return null;
+                                }
+                                result = result[item];
+                            }
+                            return result == null ? null : result;
+                        }
+                    })],
+                    ['#', name => ({
+                        evaluator: (trigger) => {
+                            const arg = (trigger.metadata?.presetListArgs || {})[name];
+                            return arg == null ? null : arg;
+                        }
+                    })]
+                ]),
+                onlyValidate: !!onlyValidate
+            });
+        }
+        return input;
     }
 
     async findAndReplaceVariables(data, trigger) {
@@ -92,24 +130,12 @@ class ReplaceVariableManager extends EventEmitter {
 
         for (const key of keys) {
             const value = data[key];
-
             if (value && typeof value === "string") {
-
                 if (value.includes("$")) {
                     let replacedValue = value;
                     const triggerId = util.getTriggerIdFromTriggerData(trigger);
                     try {
-                        replacedValue = await expressionish({
-                            handlers: this._registeredVariableHandlers,
-                            expression: value,
-                            metadata: trigger,
-                            preeval,
-                            trigger: {
-                                type: trigger.type,
-                                id: triggerId
-                            }
-                        });
-
+                        replacedValue = await this.evaluateText(value, trigger, { type: trigger.type, id: triggerId});
                     } catch (err) {
                         logger.warn(`Unable to parse variables for value: '${value}'`, err);
                     }
@@ -134,18 +160,9 @@ class ReplaceVariableManager extends EventEmitter {
             const value = data[key];
 
             if (value && typeof value === "string") {
-                if (value.includes("$")) {
+                if (value.includes("$") || value.includes('&')) {
                     try {
-                        await expressionish({
-                            handlers: this._registeredVariableHandlers,
-                            expression: value,
-                            preeval,
-                            trigger: {
-                                type: trigger && trigger.type,
-                                id: trigger && trigger.id
-                            },
-                            onlyValidate: true
-                        });
+                        await this.evaluateText(value, undefined, { type: trigger && trigger.type, id: trigger && trigger.id}, true);
 
                     } catch (err) {
                         err.dataField = key;
@@ -184,10 +201,10 @@ const manager = new ReplaceVariableManager();
 
 frontendCommunicator.on("getReplaceVariableDefinitions", () => {
     logger.debug("got 'get all vars' request");
-    return Array.from(manager.getVariableHandlers().values()).map(v => v.definition);
+    return Array.from(manager.getVariableHandlers().values()).map(v => v.definition).filter(v => !v.hidden);
 });
 
-frontendCommunicator.onAsync("validateVariables", async eventData => {
+frontendCommunicator.onAsync("validateVariables", async (eventData) => {
     logger.debug("got 'validateVariables' request");
     const { data, trigger } = eventData;
 

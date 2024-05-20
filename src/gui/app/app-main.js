@@ -157,6 +157,7 @@
         effectQueuesService.loadEffectQueues();
 
         channelRewardsService.loadChannelRewards();
+        channelRewardsService.refreshChannelRewardRedemptions();
 
         sortTagsService.loadSortTags();
 
@@ -165,7 +166,6 @@
         //start notification check
         $timeout(() => {
             notificationService.loadAllNotifications();
-            notificationService.startExternalIntervalCheck();
         }, 1000);
 
         //check for updates
@@ -354,7 +354,7 @@
                         confirmLabel: "Switch & Restart App",
                         confirmBtnType: "btn-info"
                     })
-                    .then(confirmed => {
+                    .then((confirmed) => {
                         if (confirmed) {
                             connectionService.switchProfiles(profileId);
                         }
@@ -425,7 +425,7 @@
 
         backendCommunicator.on("restore-backup", () => {
             backupService.openBackupZipFilePicker()
-                .then(backupFilePath => {
+                .then((backupFilePath) => {
                     if (backupFilePath != null) {
                         utilityService
                             .showConfirmationModal({
@@ -433,7 +433,7 @@
                                 question: "Are you sure you'd like to restore from this backup?",
                                 confirmLabel: "Restore"
                             })
-                            .then(confirmed => {
+                            .then((confirmed) => {
                                 if (confirmed) {
                                     backupService.initiateBackupRestore(backupFilePath);
                                 }
@@ -461,6 +461,12 @@
         };
     });
 
+    app.filter("dynamicFilter", function($filter) {
+        return function(items, filterName, ...args) {
+            return $filter(filterName ?? "filter")(items, ...args);
+        };
+    });
+
     // This adds a filter that we can use for searching command triggers
     app.filter("triggerSearch", function() {
         return function(commands, query) {
@@ -479,7 +485,7 @@
             if (elements == null || tag == null) {
                 return elements;
             }
-            return elements.filter(e => {
+            return elements.filter((e) => {
                 if (tag.id === "none" && (e.sortTags == null || e.sortTags.length < 1)) {
                     return true;
                 }
@@ -496,7 +502,7 @@
                 return elements;
             }
             const botAccountName = accountAccess.accounts.bot.username.toLowerCase();
-            return elements.filter(e => {
+            return elements.filter((e) => {
                 if (e.type !== 'message') {
                     return true;
                 }
@@ -512,7 +518,7 @@
             if (!shouldHide) {
                 return elements;
             }
-            return elements.filter(e => {
+            return elements.filter((e) => {
                 if (e.type !== 'message') {
                     return true;
                 }
@@ -527,7 +533,7 @@
             if (users == null || role == null) {
                 return users;
             }
-            return users.filter(u => {
+            return users.filter((u) => {
                 if (role === "broadcaster") {
                     return u.roles.includes("broadcaster");
                 } else if (role === "viewer") {
@@ -571,7 +577,7 @@
             }
             const normalizedQuery = query.toLowerCase();
             return icons
-                .filter(v => {
+                .filter((v) => {
                     const terms = `${v.style} ${v.name} ${v.searchTerms.join(" ")}`;
 
                     return terms.toLowerCase().includes(normalizedQuery);
@@ -614,6 +620,24 @@
     app.filter('prettyDate', function() {
         return function(input) {
             return (input) ? moment(input).format('L') : 'Not saved';
+        };
+    });
+
+    app.filter('timeFromNow', function() {
+        return function(input, hideSuffix = false) {
+            return moment(input).fromNow(hideSuffix);
+        };
+    });
+
+    app.filter('hideEmptyRewardQueues', function() {
+        return function(queue) {
+            const newQueueObj = { ...queue };
+            for (const key in newQueueObj) {
+                if (newQueueObj[key].length === 0) {
+                    delete newQueueObj[key];
+                }
+            }
+            return newQueueObj;
         };
     });
 

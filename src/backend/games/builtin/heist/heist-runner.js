@@ -2,13 +2,14 @@
 const moment = require("moment");
 const gameManager = require("../../game-manager");
 const twitchChat = require("../../../chat/twitch-chat");
-const commandManager = require("../../../chat/commands/CommandManager");
-const currencyDatabase = require("../../../database/currencyDatabase");
+const commandManager = require("../../../chat/commands/command-manager");
+const currencyManager = require("../../../currency/currency-manager");
 const util = require("../../../utility");
 
 /**
  * @typedef HeistUser
  * @property {string} username - The user's name
+ * @property {string} userDisplayName - The user's display name
  * @property {number} wager - The amount the user wagered
  * @property {number} successPercentage - The users win percentage
  * @property {number} winnings - The winnings the user will receive should they win
@@ -100,18 +101,18 @@ async function runHeist() {
 
     if (usersInHeist.length === 1) {
         outcomeMessage = outcomeMessage
-            .replace("{user}", usersInHeist[0].username);
+            .replace("{user}", usersInHeist[0].userDisplayName);
     }
 
     const currencyId = heistSettings.settings.currencySettings.currencyId;
     for (const user of survivers) {
-        await currencyDatabase.adjustCurrencyForUser(user.username, currencyId, user.winnings);
+        await currencyManager.adjustCurrencyForViewer(user.username, currencyId, user.winnings);
     }
 
     let winningsString;
     if (percentSurvived > 0) {
         winningsString = survivers
-            .map(s => `${s.username} (${util.commafy(s.winnings)})`)
+            .map(s => `${s.userDisplayName} (${util.commafy(s.winnings)})`)
             .join(", ");
     } else {
         winningsString = "None";
@@ -158,14 +159,14 @@ exports.triggerLobbyStart = (startDelayMins) => {
             // give currency back to users who joined
             const currencyId = heistSettings.settings.currencySettings.currencyId;
             for (const user of usersInHeist) {
-                await currencyDatabase.adjustCurrencyForUser(user.username, currencyId, user.wager);
+                await currencyManager.adjustCurrencyForViewer(user.username, currencyId, user.wager);
             }
 
             const chatter = heistSettings.settings.chatSettings.chatter;
             let teamTooSmallMessage = heistSettings.settings.generalMessages.teamTooSmall;
             if (usersInHeist.length > 0 && teamTooSmallMessage) {
                 teamTooSmallMessage = teamTooSmallMessage
-                    .replace("{user}", usersInHeist[0].username);
+                    .replace("{user}", usersInHeist[0].userDisplayName);
 
                 await twitchChat.sendChatMessage(teamTooSmallMessage, null, chatter);
             }

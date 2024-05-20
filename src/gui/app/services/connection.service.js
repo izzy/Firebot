@@ -9,7 +9,7 @@
             logger, accountAccess, settingsService, utilityService, integrationService) {
             const service = {};
 
-            backendCommunicator.on("accountUpdate", accounts => {
+            backendCommunicator.on("accountUpdate", (accounts) => {
                 service.accounts = accounts;
                 service.loadProfiles();
             });
@@ -80,6 +80,8 @@
                     return;
                 }
 
+                service.disconnectFromService("chat");
+
                 if (invalidAccounts.streamer) {
                     service.logout("streamer");
                 }
@@ -131,7 +133,7 @@
                     const globalSettingDb = dataAccess.getJsonDbInUserData("./global-settings");
                     activeProfileIds = globalSettingDb.getData("./profiles/activeProfiles");
                 } catch (err) {
-                    logger.warn("Couldnt load active profiles.");
+                    logger.warn(`Couldn't load active profiles.`);
                     return;
                 }
 
@@ -154,7 +156,7 @@
                         const profileDb = dataAccess.getJsonDbInUserData(`./profiles/${profileId}/auth-twitch`);
                         streamer = profileDb.getData("/streamer");
                     } catch (err) {
-                        logger.info(`Couldnt get streamer data for profile ${profileId} while updating the UI. Its possible this account hasnt logged in yet.`);
+                        logger.info(`Couldn't get streamer data for profile ${profileId} while updating the UI. Its possible this account hasn't logged in yet.`);
                     }
 
                     if (streamer) {
@@ -299,7 +301,7 @@
                 service.isConnectingAll = true;
             });
 
-            const playConnectionStatusSound = utilityService.debounce(connectionState => {
+            const playConnectionStatusSound = utilityService.debounce((connectionState) => {
                 const soundType = connectionState === ConnectionState.Connected ? "Online" : "Offline";
                 soundService.connectSound(soundType);
             }, 250);
@@ -363,7 +365,7 @@
             const ListenerType = listenerService.ListenerType;
             listenerService.registerListener(
                 { type: ListenerType.OVERLAY_CONNECTION_STATUS },
-                overlayStatusData => {
+                (overlayStatusData) => {
                     let status;
                     if (!overlayStatusData.serverStarted) {
                         status = "disconnected";
