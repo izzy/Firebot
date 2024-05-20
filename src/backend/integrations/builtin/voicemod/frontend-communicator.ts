@@ -4,6 +4,7 @@ import {
     SoundboardSound,
     Voice
 } from "@bean-tools/voicemod-websocket/lib/types";
+import logger from "../../../logwrapper";
 
 export function setupFrontendListeners(
     frontendCommunicator: ScriptModules["frontendCommunicator"]
@@ -11,14 +12,20 @@ export function setupFrontendListeners(
     frontendCommunicator.onAsync<never, Voice[]>(
         "voicemod-get-voice-list",
         async () => {
-            return (await voicemod.ws.getVoices()) ?? [];
+            return (await voicemod.ws.getVoices().catch((r) => {
+                logger.warning("Voicemod: Could not retrieve voices");
+                return [];
+            })) ?? [];
         }
     );
 
     frontendCommunicator.onAsync<never, SoundboardSound[]>(
         "voicemod-get-sound-list",
         async () => {
-            const soundboards = (await voicemod.ws.getAllSoundboard()) ?? [];
+            const soundboards = (await voicemod.ws.getAllSoundboard().catch((r) => {
+                logger.warning("Voicemod: Could not retrieve sounds");
+                return [];
+            })) ?? [];
             return soundboards.reduce<SoundboardSound[]>((sounds, soundboard) => {
                 return sounds.concat(soundboard.sounds);
             }, []);

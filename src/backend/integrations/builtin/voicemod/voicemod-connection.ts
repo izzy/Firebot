@@ -9,9 +9,9 @@ class Voicemod {
         this.ws = null;
     }
 
-    async connect(host: string, key: string, timeout, retries): Promise<void> {
+    async connect(host: string, key: string, timeout, retries, enableLock, maxLockTime): Promise<void> {
         logger.debug("Connecting to Voicemod...");
-        this.ws = new VoicemodWebsocket(host, key, true, timeout, retries);
+        this.ws = new VoicemodWebsocket(host, key, true, timeout, retries, enableLock, maxLockTime);
         return await this.ws.connect();
     }
 }

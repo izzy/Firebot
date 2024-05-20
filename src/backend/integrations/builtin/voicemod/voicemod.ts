@@ -38,6 +38,8 @@ type VoicemodSettings = {
         timeout: number;
         retries: number;
         debug: boolean;
+        enableLock: boolean;
+        maxLockTime: number;
     };
 };
 
@@ -83,7 +85,9 @@ class VoicemodIntegration
                     host: "127.0.0.1",
                     timeout: 5000,
                     retries: 5,
-                    debug: false
+                    debug: false,
+                    enableLock: false,
+                    maxLockTime: 5000
                 }
             };
         }
@@ -95,7 +99,10 @@ class VoicemodIntegration
                 settings.websocketSettings.host,
                 secrets.voicemodClientKey,
                 settings.websocketSettings.timeout,
-                settings.websocketSettings.retries
+                settings.websocketSettings.retries,
+                settings.websocketSettings.enableLock,
+                settings.websocketSettings.maxLockTime
+
             )
             .then(() => {
                 logger.debug("Voicemod websocket starting");
@@ -196,7 +203,8 @@ class VoicemodIntegration
         this.connected = false;
     }
 
-    async link(_linkData: LinkData): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async link(linkData: LinkData): Promise<void> {
         logger.debug("Linking Voicemod integration...");
         return;
     }
@@ -247,6 +255,18 @@ const integrationConfig: Integration<VoicemodSettings> = {
                         description: "Enable extra debug logging for Voicemod.",
                         type: "boolean",
                         default: false
+                    },
+                    enableLock: {
+                        title: "Enable locking",
+                        description: "Restricts voicemod connection to do one change at a time. May cause actions to take a long time.",
+                        type: "boolean",
+                        default: false
+                    },
+                    maxLockTime: {
+                        title: "Maximux locking time",
+                        description: "If locking is enabled, this is the longest an change is waited before the next one is started. Higher numbers may make the voicemod connection unresponsive.",
+                        type: "number",
+                        default: 5000
                     }
                 }
             }
